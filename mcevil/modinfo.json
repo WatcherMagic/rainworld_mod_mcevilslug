@@ -1,0 +1,10 @@
+﻿{
+	"id": "mcevilslug",
+	"name": "Evil McEvilslug",
+	"version": "0.1.0",
+	"authors": "WatcherMagic",
+	"description": "",
+	"requirements": [ "slime-cubed.slugbase" ],
+	"requirements_names": [ "SlugBase" ],
+	"tags": [ "Custom Slugcat" ]
+}
