@@ -1,5 +1,7 @@
 ﻿using BepInEx;
+using IL.MoreSlugcats;
 using MoreSlugcats;
+using On.MoreSlugcats;
 
 namespace SlugTemplate
 {
@@ -18,6 +20,7 @@ namespace SlugTemplate
 
             On.AbstractRoom.RealizeRoom += evilSpawnPup;
             On.Player.ObjectEaten += addFood;
+            On.Player.GrabUpdate += killPup;
         }
 
         private void evilSpawnPup(On.AbstractRoom.orig_RealizeRoom orig, AbstractRoom self, World world, RainWorldGame game)
@@ -40,12 +43,12 @@ namespace SlugTemplate
 
                         //copied from AbstractRoom.RealizeRoom()
                         AbstractCreature abstractCreature = new AbstractCreature(world,
-                            StaticWorld.GetCreatureTemplate(MoreSlugcatsEnums.CreatureTemplateType.SlugNPC),
+                            StaticWorld.GetCreatureTemplate(MoreSlugcats.MoreSlugcatsEnums.CreatureTemplateType.SlugNPC),
                             null,
                             new WorldCoordinate(self.index, -1, -1, 0),
                             game.GetNewID());
                         self.AddEntity(abstractCreature);
-                        (abstractCreature.state as PlayerNPCState).foodInStomach = 1;
+                        (abstractCreature.state as MoreSlugcats.PlayerNPCState).foodInStomach = 1;
 
                         Logger.LogInfo("Spawn successful!");
                         Logger.LogInfo(abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
@@ -78,6 +81,18 @@ namespace SlugTemplate
             }
 
             orig(self, edible);
+        }
+
+        private void killPup(On.Player.orig_GrabUpdate orig, Player self, bool eu)
+        {
+            if (self.grasps[0] != null && self.slugcatStats.name.value == MOD_ID 
+                && self.grasps[0].grabbed is Creature)
+            {
+                self.Blink(5);
+                self.MaulingUpdate(0);
+            }
+
+            orig(self, eu);
         }
     }
 }
