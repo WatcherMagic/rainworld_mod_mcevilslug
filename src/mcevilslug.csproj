@@ -13,6 +13,9 @@
     </ItemGroup>
     
     <ItemGroup>
+      <Reference Include="Unity.Mathematics">
+        <HintPath>..\..\Reference\RainWorld_Data\Managed\Unity.Mathematics.dll</HintPath>
+      </Reference>
       <Reference Include="UnityEngine.InputLegacyModule">
         <HintPath>..\..\Reference\RainWorld_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
       </Reference>

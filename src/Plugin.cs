@@ -2,6 +2,8 @@
 using IL.MoreSlugcats;
 using MoreSlugcats;
 using On.MoreSlugcats;
+using RWCustom;
+using UnityEngine;
 
 namespace SlugTemplate
 {
@@ -39,7 +41,6 @@ namespace SlugTemplate
                         && self.name != game.GetStorySession.saveState.denPosition)
                     {
                         Logger.LogInfo("Attempting to spawn SlugNPC...");
-                        
 
                         //copied from AbstractRoom.RealizeRoom()
                         AbstractCreature abstractCreature = new AbstractCreature(world,
@@ -52,7 +53,7 @@ namespace SlugTemplate
 
                         Logger.LogInfo("Spawn successful!");
                         Logger.LogInfo(abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
-                        
+
                         //removed below to increase chances of pups spawning & of multiple pups spawning
                         //is run in orig() anyway
                         //game.GetStorySession.saveState.miscWorldSaveData.cyclesSinceLastSlugpup = -game.GetStorySession.saveState.miscWorldSaveData.cyclesSinceLastSlugpup;
@@ -88,8 +89,12 @@ namespace SlugTemplate
             if (self.grasps[0] != null && self.slugcatStats.name.value == MOD_ID 
                 && self.grasps[0].grabbed is Creature)
             {
-                self.Blink(5);
-                self.MaulingUpdate(0);
+                if (self.input[0].pckp 
+                    && (self.grasps[0].grabbed as Creature).GetType() == typeof(Player))
+                {
+                    Logger.LogInfo("Pressed pickup while holding creature "
+                        + (self.grasps[0].grabbed as Creature).GetType().Name);
+                }
             }
 
             orig(self, eu);
