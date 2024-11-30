@@ -10,7 +10,6 @@ using System.Reflection;
 using MonoMod.RuntimeDetour;
 using MoreSlugcats;
 using BepInEx.Logging;
-using mcevilslug;
 
 namespace SlugTemplate
 {
@@ -27,11 +26,8 @@ namespace SlugTemplate
         {
             Logger.LogInfo("McEvilslug Enabled");
 
-            EvilSlugEnums.RegisterValues();
-
             On.AbstractRoom.RealizeRoom += evilSpawnPup;
             On.Player.ObjectEaten += addFood;
-            On.RainWorld.OnModsDisabled += UnregisterEvilEnums;
         }
 
         private void evilSpawnPup(On.AbstractRoom.orig_RealizeRoom orig, AbstractRoom self, World world, RainWorldGame game)
@@ -88,18 +84,6 @@ namespace SlugTemplate
             }
 
             orig(self, edible);
-        }
-
-        private void UnregisterEvilEnums(On.RainWorld.orig_OnModsDisabled orig, RainWorld self, ModManager.Mod[] newlyDisabledMods)
-        {
-            orig(self, newlyDisabledMods);
-            foreach (ModManager.Mod mod in newlyDisabledMods)
-            {
-                if (mod.id == MOD_ID)
-                {
-                    EvilSlugEnums.UnregisterValues();
-                }
-            }
         }
     }
 }
