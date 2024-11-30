@@ -1,28 +1,38 @@
 ﻿using BepInEx;
-using IL.MoreSlugcats;
-using MoreSlugcats;
-using On.MoreSlugcats;
-using RWCustom;
-using UnityEngine;
+using mcevilslug;
+using MonoMod.RuntimeDetour;
+using System.Reflection;
 
 namespace SlugTemplate
 {
     [BepInPlugin(MOD_ID, "Evil McEvilslug", "0.1.0")]
     class Plugin : BaseUnityPlugin
     {
-        private const string MOD_ID = "mcevilslug";
+        public const string MOD_ID = "mcevilslug";
 
         private const int QUARTER_FOOD_AMOUNT_MUSHROOM = 2;
         private const int FOOD_AMOUNT_KARMAFLOWER = 1;
+        private const int PICKUP_COUNTER = 10;
+        private int framesPickupHeld = 0;
+
+        BindingFlags propFlags = BindingFlags.Instance | BindingFlags.Public;
+        BindingFlags myMethodFlags = BindingFlags.Static | BindingFlags.Public;
 
         // Add hooks & register enums
         public void OnEnable()
         {
-            Logger.LogInfo("McEvilslug Enabled");
+            GenerateManualHooks();
 
             On.AbstractRoom.RealizeRoom += evilSpawnPup;
             On.Player.ObjectEaten += addFood;
             On.Player.GrabUpdate += killPup;
+        }
+
+        private void GenerateManualHooks()
+        {
+            Hook canPutSlugToBackHook = new Hook(
+                typeof(Player).GetProperty("CanPutSlugToBack", propFlags).GetGetMethod(),
+                typeof(CanPutSlugToBack_Hook).GetMethod("Evilslug_CanPutSlugToBack_get", myMethodFlags));
         }
 
         private void evilSpawnPup(On.AbstractRoom.orig_RealizeRoom orig, AbstractRoom self, World world, RainWorldGame game)
@@ -87,13 +97,24 @@ namespace SlugTemplate
         private void killPup(On.Player.orig_GrabUpdate orig, Player self, bool eu)
         {
             if (self.grasps[0] != null && self.slugcatStats.name.value == MOD_ID 
-                && self.grasps[0].grabbed is Creature)
+                && self.grasps[0].grabbed is Creature && !(self.grasps[0].grabbed as Creature).dead)
             {
                 if (self.input[0].pckp 
                     && (self.grasps[0].grabbed as Creature).GetType() == typeof(Player))
                 {
-                    Logger.LogInfo("Pressed pickup while holding creature "
-                        + (self.grasps[0].grabbed as Creature).GetType().Name);
+                    //Logger.LogInfo("Pressed pickup while holding creature "
+                    //    + (self.grasps[0].grabbed as Creature).GetType().Name);
+
+                    //framesPickupHeld += 1;
+                    //if (framesPickupHeld >= PICKUP_COUNTER)
+                    //{
+
+                    Creature creature = self.grasps[0].grabbed as Creature;
+                        
+                    self.Grab(creature, 0, 0, Creature.Grasp.Shareability.CanOnlyShareWithNonExclusive, 0.5f, true, false);
+                    self.MaulingUpdate(0);
+                    //framesPickupHeld = 0;
+                    //}
                 }
             }
 
