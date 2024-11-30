@@ -1,15 +1,5 @@
-﻿using System;
-using BepInEx;
-using UnityEngine;
-using SlugBase.Features;
-using static SlugBase.Features.FeatureTypes;
-using IL;
-using On;
-using MonoMod.Cil;
-using System.Reflection;
-using MonoMod.RuntimeDetour;
+﻿using BepInEx;
 using MoreSlugcats;
-using BepInEx.Logging;
 
 namespace SlugTemplate
 {
@@ -18,8 +8,8 @@ namespace SlugTemplate
     {
         private const string MOD_ID = "mcevilslug";
 
-        private const int FOOD_AMOUNT_MUSHROOM = 1;
-        private const int FOOD_AMOUNT_KARMAFLOWER = 2;
+        private const int QUARTER_FOOD_AMOUNT_MUSHROOM = 2;
+        private const int FOOD_AMOUNT_KARMAFLOWER = 1;
 
         // Add hooks & register enums
         public void OnEnable()
@@ -46,6 +36,7 @@ namespace SlugTemplate
                         && self.name != game.GetStorySession.saveState.denPosition)
                     {
                         Logger.LogInfo("Attempting to spawn SlugNPC...");
+                        
 
                         //copied from AbstractRoom.RealizeRoom()
                         AbstractCreature abstractCreature = new AbstractCreature(world,
@@ -79,7 +70,10 @@ namespace SlugTemplate
                 }
                 if (edible.GetType().Name == nameof(Mushroom))
                 {
-                    self.AddFood(FOOD_AMOUNT_MUSHROOM);
+                    for (int i = QUARTER_FOOD_AMOUNT_MUSHROOM; i > 0; i--)
+                    {
+                        self.AddQuarterFood();
+                    }
                 }
             }
 
