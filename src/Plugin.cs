@@ -111,6 +111,10 @@ namespace SlugTemplate
                         self.MaulingUpdate(0);
                         framesPickupHeld = 0;
                     }
+                    if (!self.input[0].pckp)
+                    {
+                        framesPickupHeld = 0;
+                    }
                 }
             }
 
