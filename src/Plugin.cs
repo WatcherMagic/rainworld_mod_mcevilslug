@@ -12,7 +12,7 @@ namespace SlugTemplate
 
         private const int QUARTER_FOOD_AMOUNT_MUSHROOM = 2;
         private const int FOOD_AMOUNT_KARMAFLOWER = 1;
-        private const int PICKUP_COUNTER = 10;
+        private const int PICKUP_COUNTER = 30;
         private int framesPickupHeld = 0;
 
         BindingFlags propFlags = BindingFlags.Instance | BindingFlags.Public;
@@ -26,6 +26,7 @@ namespace SlugTemplate
             On.AbstractRoom.RealizeRoom += evilSpawnPup;
             On.Player.ObjectEaten += addFood;
             On.Player.GrabUpdate += killPup;
+            //On.Player.CanMaulCreature += evilCanMaulSlug;
         }
 
         private void GenerateManualHooks()
@@ -102,23 +103,30 @@ namespace SlugTemplate
                 if (self.input[0].pckp 
                     && (self.grasps[0].grabbed as Creature).GetType() == typeof(Player))
                 {
-                    //Logger.LogInfo("Pressed pickup while holding creature "
-                    //    + (self.grasps[0].grabbed as Creature).GetType().Name);
-
-                    //framesPickupHeld += 1;
-                    //if (framesPickupHeld >= PICKUP_COUNTER)
-                    //{
-
-                    Creature creature = self.grasps[0].grabbed as Creature;
-                        
-                    self.Grab(creature, 0, 0, Creature.Grasp.Shareability.CanOnlyShareWithNonExclusive, 0.5f, true, false);
-                    self.MaulingUpdate(0);
-                    //framesPickupHeld = 0;
-                    //}
+                    framesPickupHeld += 1;
+                    if (framesPickupHeld >= PICKUP_COUNTER)
+                    {
+                        Creature creature = self.grasps[0].grabbed as Creature;                        
+                        self.Grab(creature, 0, 1, Creature.Grasp.Shareability.CanOnlyShareWithNonExclusive, 0.5f, true, false);
+                        self.MaulingUpdate(0);
+                        framesPickupHeld = 0;
+                    }
                 }
             }
 
             orig(self, eu);
         }
+
+        /*private bool evilCanMaulSlug(On.Player.orig_CanMaulCreature orig, Player self, Creature crit)
+        {
+            //still doesn't fix spup not taking damage
+
+            if (!crit.dead && self.slugcatStats.name.value == MOD_ID && (crit is Player))
+            {
+                return true;
+            }
+
+            return orig(self, crit);
+        }*/
     }
 }
