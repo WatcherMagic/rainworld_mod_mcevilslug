@@ -12,8 +12,11 @@ namespace SlugTemplate
 
         private const int QUARTER_FOOD_AMOUNT_MUSHROOM = 2;
         private const int FOOD_AMOUNT_KARMAFLOWER = 1;
-        private const int PICKUP_COUNTER = 30;
+
+        private const int PICKUP_COUNTER = 20;
+        private const int SLUG_TO_BACK_COUNTER = 10;
         private int framesPickupHeld = 0;
+        private int framesSlugToBackInput = 0;
 
         BindingFlags propFlags = BindingFlags.Instance | BindingFlags.Public;
         BindingFlags myMethodFlags = BindingFlags.Static | BindingFlags.Public;
@@ -21,19 +24,10 @@ namespace SlugTemplate
         // Add hooks & register enums
         public void OnEnable()
         {
-            GenerateManualHooks();
-
             On.AbstractRoom.RealizeRoom += evilSpawnPup;
             On.Player.ObjectEaten += addFood;
-            On.Player.GrabUpdate += killPup;
+            On.Player.GrabUpdate += evilGrabUpdate;
             //On.Player.CanMaulCreature += evilCanMaulSlug;
-        }
-
-        private void GenerateManualHooks()
-        {
-            Hook canPutSlugToBackHook = new Hook(
-                typeof(Player).GetProperty("CanPutSlugToBack", propFlags).GetGetMethod(),
-                typeof(CanPutSlugToBack_Hook).GetMethod("Evilslug_CanPutSlugToBack_get", myMethodFlags));
         }
 
         private void evilSpawnPup(On.AbstractRoom.orig_RealizeRoom orig, AbstractRoom self, World world, RainWorldGame game)
@@ -65,6 +59,9 @@ namespace SlugTemplate
                         Logger.LogInfo("Spawn successful!");
                         Logger.LogInfo(abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
 
+                        UnityEngine.Debug.Log("Evilslug: " + abstractCreature.GetType().ToString()
+                            + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
+
                         //removed below to increase chances of pups spawning & of multiple pups spawning
                         //is run in orig() anyway
                         //game.GetStorySession.saveState.miscWorldSaveData.cyclesSinceLastSlugpup = -game.GetStorySession.saveState.miscWorldSaveData.cyclesSinceLastSlugpup;
@@ -95,30 +92,49 @@ namespace SlugTemplate
             orig(self, edible);
         }
 
-        private void killPup(On.Player.orig_GrabUpdate orig, Player self, bool eu)
+        private void evilGrabUpdate(On.Player.orig_GrabUpdate orig, Player self, bool eu)
         {
-            if (self.grasps[0] != null && self.slugcatStats.name.value == MOD_ID 
-                && self.grasps[0].grabbed is Creature && !(self.grasps[0].grabbed as Creature).dead)
+
+            if (self.input[0].pckp && self.grasps[0] != null && self.slugcatStats.name.value == MOD_ID
+                && self.grasps[0].grabbed is Creature
+                && !(self.grasps[0].grabbed as Creature).dead
+                && (self.grasps[0].grabbed as Creature).GetType() == typeof(Player))
             {
-                if (self.input[0].pckp 
-                    && (self.grasps[0].grabbed as Creature).GetType() == typeof(Player))
+
+                framesPickupHeld += 1;
+                if (self.input[1].AnyDirectionalInput && !self.input[0].AnyDirectionalInput)
                 {
-                    framesPickupHeld += 1;
-                    if (framesPickupHeld >= PICKUP_COUNTER)
+                    framesPickupHeld = 0;
+                    framesSlugToBackInput = 0;
+                }
+                if (self.input[0].AnyDirectionalInput)
+                {
+                    framesSlugToBackInput += 1;
+                    if (framesSlugToBackInput >= SLUG_TO_BACK_COUNTER)
                     {
-                        Creature creature = self.grasps[0].grabbed as Creature;                        
-                        self.Grab(creature, 0, 1, Creature.Grasp.Shareability.CanOnlyShareWithNonExclusive, 0.5f, true, false);
-                        self.MaulingUpdate(0);
-                        framesPickupHeld = 0;
-                    }
-                    if (!self.input[0].pckp)
-                    {
-                        framesPickupHeld = 0;
+                        self.slugOnBack.SlugToBack(self.grasps[0].grabbed as Player);
+                        framesSlugToBackInput = 0;
                     }
                 }
+                else if (framesPickupHeld >= PICKUP_COUNTER)
+                {
+                    killPup(self);
+                }
+                
+            }
+            if (self.input[1].pckp && !self.input[0].pckp)
+            {
+                framesPickupHeld = 0;
             }
 
             orig(self, eu);
+        }
+
+        private void killPup(Player self)
+        {
+            Creature creature = self.grasps[0].grabbed as Creature;
+            self.Grab(creature, 0, 1, Creature.Grasp.Shareability.CanOnlyShareWithNonExclusive, 0.5f, true, false);
+            self.MaulingUpdate(0);
         }
 
         /*private bool evilCanMaulSlug(On.Player.orig_CanMaulCreature orig, Player self, Creature crit)
