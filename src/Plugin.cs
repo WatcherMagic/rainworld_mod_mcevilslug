@@ -1,7 +1,7 @@
 ﻿using BepInEx;
-using mcevilslug;
-using MonoMod.RuntimeDetour;
-using System.Reflection;
+using Mono.Cecil.Cil;
+using MonoMod.Cil;
+using System;
 
 namespace SlugTemplate
 {
@@ -18,15 +18,22 @@ namespace SlugTemplate
         private int framesPickupHeld = 0;
         private int framesSlugToBackInput = 0;
 
-        BindingFlags propFlags = BindingFlags.Instance | BindingFlags.Public;
-        BindingFlags myMethodFlags = BindingFlags.Static | BindingFlags.Public;
-
         // Add hooks & register enums
         public void OnEnable()
         {
             On.AbstractRoom.RealizeRoom += evilSpawnPup;
             On.Player.ObjectEaten += addFood;
             On.Player.GrabUpdate += evilGrabUpdate;
+            //On.Player.ThrowObject += tossSpear;
+
+            try
+            {
+                IL.Player.Update += noPopcorn;
+            } catch (Exception e)
+            {
+                Logger.LogError(e);
+            }
+            
             //On.Player.CanMaulCreature += evilCanMaulSlug;
         }
 
@@ -38,7 +45,7 @@ namespace SlugTemplate
 
                 if (self.realizedRoom == null && !self.offScreenDen)
                 {
-                    int maxCycleWithoutPup = 2;
+                    int maxCycleWithoutPup = 3;
                     if (ModManager.MSC
                         && self.shelter
                         && !world.singleRoomWorld
@@ -55,6 +62,7 @@ namespace SlugTemplate
                             game.GetNewID());
                         self.AddEntity(abstractCreature);
                         (abstractCreature.state as MoreSlugcats.PlayerNPCState).foodInStomach = 1;
+                        game.GetStorySession.saveState.miscWorldSaveData.cyclesSinceLastSlugpup = -game.GetStorySession.saveState.miscWorldSaveData.cyclesSinceLastSlugpup;
 
                         Logger.LogInfo("Spawn successful!");
                         Logger.LogInfo(abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
@@ -62,9 +70,6 @@ namespace SlugTemplate
                         UnityEngine.Debug.Log("Evilslug: " + abstractCreature.GetType().ToString()
                             + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
 
-                        //removed below to increase chances of pups spawning & of multiple pups spawning
-                        //is run in orig() anyway
-                        //game.GetStorySession.saveState.miscWorldSaveData.cyclesSinceLastSlugpup = -game.GetStorySession.saveState.miscWorldSaveData.cyclesSinceLastSlugpup;
                     }
                 }
             }
@@ -135,6 +140,46 @@ namespace SlugTemplate
             Creature creature = self.grasps[0].grabbed as Creature;
             self.Grab(creature, 0, 1, Creature.Grasp.Shareability.CanOnlyShareWithNonExclusive, 0.5f, true, false);
             self.MaulingUpdate(0);
+        }
+
+        //private void tossSpear(On.Player.orig_ThrowObject orig, Player self, int grasp, bool eu)
+        //{
+        //    if (self.slugcatStats.name.value == MOD_ID 
+        //        && (!ModManager.Expedition 
+        //            || (ModManager.Expedition && !self.room.game.rainWorld.ExpeditionMode))) {
+
+        //        //
+        //    }
+
+        //    orig(self, grasp, eu);
+        //}
+
+        private void noPopcorn(ILContext il)
+        {
+            try
+            {
+                var c = new ILCursor(il);
+
+                c.GotoNext(MoveType.Before,
+                    x => x.MatchLdarg(0),
+                    x => x.MatchLdcI4(1),
+                    x => x.MatchCallOrCallvirt(typeof(Player).GetMethod(nameof(Player.AddFood))),
+                    x => x.MatchLdarg(0),
+                    x => x.MatchLdcI4(45), //0x2D
+                    x => x.MatchStfld(typeof(Player).GetField(nameof(Player.dontEatExternalFoodSourceCounter))));
+
+                c.Index += 3;
+                ILLabel skipFoodTarget = c.MarkLabel();
+                c.Index -= 3;
+                c.Emit(OpCodes.Br, skipFoodTarget);
+                
+
+                UnityEngine.Debug.Log(il.ToString());
+
+            } catch (Exception e)
+            {
+                Logger.LogError(e);
+            }
         }
 
         /*private bool evilCanMaulSlug(On.Player.orig_CanMaulCreature orig, Player self, Creature crit)
