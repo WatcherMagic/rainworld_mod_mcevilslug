@@ -29,6 +29,7 @@ namespace SlugTemplate
             try
             {
                 IL.Player.Update += noPopcorn;
+
             } catch (Exception e)
             {
                 Logger.LogError(e);
@@ -170,9 +171,12 @@ namespace SlugTemplate
 
                 c.Index += 3;
                 ILLabel skipFoodTarget = c.MarkLabel();
-                c.Index -= 3;
+                c.Index -= 1;
+                ILLabel addFoodTarget = c.MarkLabel();
+                c.Index -= 2;
+                //
                 c.Emit(OpCodes.Br, skipFoodTarget);
-                
+                //c.Emit(OpCodes.Brfalse, addFoodTarget);
 
                 UnityEngine.Debug.Log(il.ToString());
 
