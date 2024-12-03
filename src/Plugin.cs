@@ -24,7 +24,7 @@ namespace SlugTemplate
             On.AbstractRoom.RealizeRoom += evilSpawnPup;
             On.Player.ObjectEaten += addFood;
             On.Player.GrabUpdate += evilGrabUpdate;
-            //On.Player.ThrowObject += tossSpear;
+            On.Player.ThrownSpear += evilSpearThrow;
 
             try
             {
@@ -68,7 +68,7 @@ namespace SlugTemplate
                         Logger.LogInfo("Spawn successful!");
                         Logger.LogInfo(abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
 
-                        UnityEngine.Debug.Log("Evilslug: " + abstractCreature.GetType().ToString()
+                        UnityEngine.Debug.Log("Evilslug: " + abstractCreature.GetType().Name
                             + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
 
                     }
@@ -143,17 +143,20 @@ namespace SlugTemplate
             self.MaulingUpdate(0);
         }
 
-        //private void tossSpear(On.Player.orig_ThrowObject orig, Player self, int grasp, bool eu)
-        //{
-        //    if (self.slugcatStats.name.value == MOD_ID 
-        //        && (!ModManager.Expedition 
-        //            || (ModManager.Expedition && !self.room.game.rainWorld.ExpeditionMode))) {
+        private void evilSpearThrow(On.Player.orig_ThrownSpear orig, Player self, Spear spear)
+        {
+            orig(self, spear);
 
-        //        //
-        //    }
+            if (self.slugcatStats.name.value == MOD_ID)
+            {
+                UnityEngine.Debug.Log("Slugcat is " + self.slugcatStats.name.value
+                    + ", physics applied to spear thrown by " + spear.thrownBy.GetType().Name);
 
-        //    orig(self, grasp, eu);
-        //}
+                BodyChunk firstChunk = spear.firstChunk;
+                firstChunk.vel.y = firstChunk.vel.y * 0.33f;
+                
+            }
+        }
 
         private void noPopcorn(ILContext il)
         {
