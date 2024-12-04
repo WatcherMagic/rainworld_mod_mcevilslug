@@ -150,12 +150,9 @@ namespace SlugTemplate
 
             if (self.slugcatStats.name.value == MOD_ID)
             {
-                UnityEngine.Debug.Log("Slugcat is " + self.slugcatStats.name.value
-                    + ", physics applied to spear thrown by " + spear.thrownBy.GetType().Name);
-
                 BodyChunk firstChunk = spear.firstChunk;
                 firstChunk.vel.y = firstChunk.vel.y * 0.33f;
-                
+                spear.SetRandomSpin();
             }
         }
 
