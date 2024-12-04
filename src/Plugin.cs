@@ -25,6 +25,7 @@ namespace SlugTemplate
             On.Player.ObjectEaten += addFood;
             On.Player.GrabUpdate += evilGrabUpdate;
             On.Player.ThrownSpear += evilSpearThrow;
+            On.Player.Update += evilClimb;
 
             try
             {
@@ -156,6 +157,28 @@ namespace SlugTemplate
                 firstChunk.vel.y = firstChunk.vel.y * 0.33f;
                 
             }
+        }
+
+        private void evilClimb(On.Player.orig_Update orig, Player self, bool eu)
+        {
+            orig(self, eu);
+
+            if (self.slugcatStats.name.value == MOD_ID
+                && self.input[0].AnyDirectionalInput
+                && self.input[0].jmp
+                && self.State.alive
+                && !self.Stunned)
+            {
+                tryToClimb(self);
+            }
+        }
+
+        private void tryToClimb(Player self)
+        {
+            //WorldCoordinate currentPos = self.abstractCreature.pos;
+
+
+            //UnityEngine.Debug.Log("trying to climb");
         }
 
         private void noPopcorn(ILContext il)
