@@ -1,7 +1,11 @@
 ﻿using BepInEx;
+using BepInEx.Logging;
+using mcevilslug;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
+using MonoMod.RuntimeDetour;
 using System;
+using System.Reflection;
 
 namespace SlugTemplate
 {
@@ -9,6 +13,8 @@ namespace SlugTemplate
     class Plugin : BaseUnityPlugin
     {
         public const string MOD_ID = "mcevilslug";
+
+        private bool _initialized = false;
 
         private const int QUARTER_FOOD_AMOUNT_MUSHROOM = 2;
         private const int FOOD_AMOUNT_KARMAFLOWER = 1;
@@ -18,18 +24,23 @@ namespace SlugTemplate
         private int framesPickupHeld = 0;
         private int framesSlugToBackInput = 0;
 
+        internal static BindingFlags bfAll = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
+
         // Add hooks & register enums
         public void OnEnable()
         {
-            On.AbstractRoom.RealizeRoom += evilSpawnPup;
-            On.Player.ObjectEaten += addFood;
-            On.Player.GrabUpdate += evilGrabUpdate;
-            On.Player.ThrownSpear += evilSpearThrow;
-            On.Player.Update += evilClimb;
+            LoadManualHooks();
+
+            On.World.SpawnPupNPCs += SpawnPup;
+            On.AbstractRoom.RealizeRoom += SpawnPupOnShelterRealize;
+            On.Player.ObjectEaten += AddFood;
+            On.Player.GrabUpdate += EvilGrabUpdate;
+            On.Player.ThrownSpear += EvilSpearThrow;
+            On.Player.Update += EvilClimb;
 
             try
             {
-                IL.Player.Update += noPopcorn;
+                IL.Player.Update += NoPopcorn;
 
             } catch (Exception e)
             {
@@ -39,23 +50,60 @@ namespace SlugTemplate
             //On.Player.CanMaulCreature += evilCanMaulSlug;
         }
 
-        private void evilSpawnPup(On.AbstractRoom.orig_RealizeRoom orig, AbstractRoom self, World world, RainWorldGame game)
+        private void LoadManualHooks()
+        {
+            try
+            {
+                _ = new Hook(
+                    typeof(StoryGameSession).GetProperty(nameof(StoryGameSession.slugPupMaxCount), bfAll).GetGetMethod(),
+                    typeof(SlugPupMaxCount_Hook).GetMethod(nameof(SlugPupMaxCount_Hook.MaxPups_Hook), bfAll));
+
+            } catch (Exception e)
+            {
+                Logger.LogError(e);
+            }
+        }
+
+        private int SpawnPup(On.World.orig_SpawnPupNPCs orig, World self)
+        {
+            //if (self.game.IsStorySession
+            //    && !self.singleRoomWorld
+            //    && self.game.StoryCharacter.value == MOD_ID)
+            //{
+            //    UnityEngine.Debug.Log(self.region.name);
+
+            //    //if not five pebbles
+            //}
+
+            UnityEngine.Debug.Log("World.SpawnPupNPCs() initiated");
+            UnityEngine.Debug.Log("Pup spawn chance is " + self.region.regionParams.slugPupSpawnChance);
+            UnityEngine.Debug.Log("slugPupMaxCount is " + self.game.GetStorySession.slugPupMaxCount);
+
+            Logger.LogInfo("World.SpawnPupNPCs() initiated");
+            Logger.LogInfo("Pup spawn chance is " + self.region.regionParams.slugPupSpawnChance);
+            Logger.LogInfo("slugPupMaxCount is " + self.game.GetStorySession.slugPupMaxCount);
+
+            return orig(self);
+        }
+
+        private void SpawnPupOnShelterRealize(On.AbstractRoom.orig_RealizeRoom orig, AbstractRoom self, World world, RainWorldGame game)
         {
             if (game.StoryCharacter.value == MOD_ID)
             {
                 Logger.LogInfo("evilSpawnPup() slugbase ID check passed");
 
-                if (self.realizedRoom == null && !self.offScreenDen)
+                if (ModManager.MSC 
+                    && self.realizedRoom == null
+                    && !self.offScreenDen
+                    && self.shelter
+                    && !world.singleRoomWorld
+                    && self.name != game.GetStorySession.saveState.denPosition)
                 {
-                    int maxCycleWithoutPup = 3;
-                    if (ModManager.MSC
-                        && self.shelter
-                        && !world.singleRoomWorld
-                        && game.GetStorySession.saveState.miscWorldSaveData.cyclesSinceLastSlugpup >= maxCycleWithoutPup
-                        && self.name != game.GetStorySession.saveState.denPosition)
-                    {
-                        Logger.LogInfo("Attempting to spawn SlugNPC...");
+                    Logger.LogInfo("Attempting to spawn SlugNPC...");
 
+                    float spawn = UnityEngine.Random.Range(0, 10);
+                    if (spawn <= 1.7)
+                    {
                         //copied from AbstractRoom.RealizeRoom()
                         AbstractCreature abstractCreature = new AbstractCreature(world,
                             StaticWorld.GetCreatureTemplate(MoreSlugcats.MoreSlugcatsEnums.CreatureTemplateType.SlugNPC),
@@ -64,22 +112,25 @@ namespace SlugTemplate
                             game.GetNewID());
                         self.AddEntity(abstractCreature);
                         (abstractCreature.state as MoreSlugcats.PlayerNPCState).foodInStomach = 1;
-                        game.GetStorySession.saveState.miscWorldSaveData.cyclesSinceLastSlugpup = -game.GetStorySession.saveState.miscWorldSaveData.cyclesSinceLastSlugpup;
+                        //game.GetStorySession.saveState.miscWorldSaveData.cyclesSinceLastSlugpup = -game.GetStorySession.saveState.miscWorldSaveData.cyclesSinceLastSlugpup;
 
                         Logger.LogInfo("Spawn successful!");
                         Logger.LogInfo(abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
 
-                        UnityEngine.Debug.Log("Evilslug: " + abstractCreature.GetType().Name
-                            + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
-
+                        UnityEngine.Debug.Log("Evilslug: " + "Slugpup " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
                     }
+                    else
+                    {
+                        Logger.LogInfo("Spawn failed due to random chance");
+                    }
+                    
                 }
             }
             
             orig(self, world, game);
         }
 
-        private void addFood(On.Player.orig_ObjectEaten orig, Player self, IPlayerEdible edible)
+        private void AddFood(On.Player.orig_ObjectEaten orig, Player self, IPlayerEdible edible)
         {
             if (self.slugcatStats.name.value == MOD_ID)
             {
@@ -99,7 +150,7 @@ namespace SlugTemplate
             orig(self, edible);
         }
 
-        private void evilGrabUpdate(On.Player.orig_GrabUpdate orig, Player self, bool eu)
+        private void EvilGrabUpdate(On.Player.orig_GrabUpdate orig, Player self, bool eu)
         {
 
             if (self.input[0].pckp && self.grasps[0] != null && self.slugcatStats.name.value == MOD_ID
@@ -119,13 +170,14 @@ namespace SlugTemplate
                     framesSlugToBackInput += 1;
                     if (framesSlugToBackInput >= SLUG_TO_BACK_COUNTER)
                     {
+                        UnityEngine.Debug.Log("Evilslug: putting pup to back");
                         self.slugOnBack.SlugToBack(self.grasps[0].grabbed as Player);
                         framesSlugToBackInput = 0;
                     }
                 }
                 else if (framesPickupHeld >= PICKUP_COUNTER)
                 {
-                    killPup(self);
+                    KillPup(self);
                 }
                 
             }
@@ -137,14 +189,14 @@ namespace SlugTemplate
             orig(self, eu);
         }
 
-        private void killPup(Player self)
+        private void KillPup(Player self)
         {
             Creature creature = self.grasps[0].grabbed as Creature;
             self.Grab(creature, 0, 1, Creature.Grasp.Shareability.CanOnlyShareWithNonExclusive, 0.5f, true, false);
             self.MaulingUpdate(0);
         }
 
-        private void evilSpearThrow(On.Player.orig_ThrownSpear orig, Player self, Spear spear)
+        private void EvilSpearThrow(On.Player.orig_ThrownSpear orig, Player self, Spear spear)
         {
             orig(self, spear);
 
@@ -156,7 +208,7 @@ namespace SlugTemplate
             }
         }
 
-        private void evilClimb(On.Player.orig_Update orig, Player self, bool eu)
+        private void EvilClimb(On.Player.orig_Update orig, Player self, bool eu)
         {
             orig(self, eu);
 
@@ -166,11 +218,11 @@ namespace SlugTemplate
                 && self.State.alive
                 && !self.Stunned)
             {
-                tryToClimb(self);
+                TryToClimb(self);
             }
         }
 
-        private void tryToClimb(Player self)
+        private void TryToClimb(Player self)
         {
             //WorldCoordinate currentPos = self.abstractCreature.pos;
 
@@ -178,7 +230,7 @@ namespace SlugTemplate
             //UnityEngine.Debug.Log("trying to climb");
         }
 
-        private void noPopcorn(ILContext il)
+        private void NoPopcorn(ILContext il)
         {
             try
             {

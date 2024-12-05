@@ -1,2 +1,3 @@
-[FINDLINESTART]pupSpawnChance
-[REPLACE]pupSpawnChance: 0.8
+[MERGE]
+pupSpawnChance: 0.8
+[ENDMERGE]

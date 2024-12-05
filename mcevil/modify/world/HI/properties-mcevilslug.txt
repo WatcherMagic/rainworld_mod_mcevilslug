@@ -1,2 +1,1 @@
-[FINDLINESTART]pupSpawnChance
-[REPLACE]pupSpawnChance: 0.8
+[ADD]pupSpawnChance: 0.8
