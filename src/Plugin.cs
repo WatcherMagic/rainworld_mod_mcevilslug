@@ -1,5 +1,4 @@
 ﻿using BepInEx;
-using BepInEx.Logging;
 using mcevilslug;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
@@ -13,8 +12,6 @@ namespace SlugTemplate
     class Plugin : BaseUnityPlugin
     {
         public const string MOD_ID = "mcevilslug";
-
-        private bool _initialized = false;
 
         private const int QUARTER_FOOD_AMOUNT_MUSHROOM = 2;
         private const int FOOD_AMOUNT_KARMAFLOWER = 1;
@@ -66,15 +63,6 @@ namespace SlugTemplate
 
         private int SpawnPup(On.World.orig_SpawnPupNPCs orig, World self)
         {
-            //if (self.game.IsStorySession
-            //    && !self.singleRoomWorld
-            //    && self.game.StoryCharacter.value == MOD_ID)
-            //{
-            //    UnityEngine.Debug.Log(self.region.name);
-
-            //    //if not five pebbles
-            //}
-
             UnityEngine.Debug.Log("World.SpawnPupNPCs() initiated");
             UnityEngine.Debug.Log("Pup spawn chance is " + self.region.regionParams.slugPupSpawnChance);
             UnityEngine.Debug.Log("slugPupMaxCount is " + self.game.GetStorySession.slugPupMaxCount);
