@@ -21,14 +21,17 @@ namespace SlugTemplate
         private int framesPickupHeld = 0;
         private int framesSlugToBackInput = 0;
 
+        private int minPupsPerCycle = 2; //will always be 1 lower than the actual minimum due to Unity's Random.Range int overload
+        private int maxPupsForceSpawned = 5;
+
         internal static BindingFlags bfAll = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
 
-        // Add hooks & register enums
+
         public void OnEnable()
         {
             LoadManualHooks();
 
-            On.World.SpawnPupNPCs += SpawnPup;
+            On.World.SpawnPupNPCs += SpawnPupOnWorldLoad;
             On.AbstractRoom.RealizeRoom += SpawnPupOnShelterRealize;
             On.Player.ObjectEaten += AddFood;
             On.Player.GrabUpdate += EvilGrabUpdate;
@@ -61,15 +64,30 @@ namespace SlugTemplate
             }
         }
 
-        private int SpawnPup(On.World.orig_SpawnPupNPCs orig, World self)
+        private int SpawnPupOnWorldLoad(On.World.orig_SpawnPupNPCs orig, World self)
         {
-            UnityEngine.Debug.Log("World.SpawnPupNPCs() initiated");
-            UnityEngine.Debug.Log("Pup spawn chance is " + self.region.regionParams.slugPupSpawnChance);
-            UnityEngine.Debug.Log("slugPupMaxCount is " + self.game.GetStorySession.slugPupMaxCount);
+            if (self.game.StoryCharacter.value == MOD_ID)
+            {
+                UnityEngine.Debug.Log("Evilslug: Region pup chance is " + self.region.regionParams.slugPupSpawnChance);
+                UnityEngine.Debug.Log("Evilslug: slugPupMaxCount is " + self.game.GetStorySession.slugPupMaxCount);
 
-            Logger.LogInfo("World.SpawnPupNPCs() initiated");
-            Logger.LogInfo("Pup spawn chance is " + self.region.regionParams.slugPupSpawnChance);
-            Logger.LogInfo("slugPupMaxCount is " + self.game.GetStorySession.slugPupMaxCount);
+                Logger.LogInfo("SpawnPupOnWorldLoad() initiated");
+                Logger.LogInfo("Pup spawn chance is " + self.region.regionParams.slugPupSpawnChance);
+                Logger.LogInfo("slugPupMaxCount is " + self.game.GetStorySession.slugPupMaxCount);
+
+                AbstractRoom spawnRoom = null;
+                int pupsThisCycle = UnityEngine.Random.Range(minPupsPerCycle, maxPupsForceSpawned);
+                UnityEngine.Debug.Log("Evilslug: Force spawning " + pupsThisCycle + " pups this cycle");
+                Logger.LogInfo("Force spawning " + pupsThisCycle + " pups this cycle");
+
+                for (int p = 0; p < pupsThisCycle; p++)
+                {
+                    int randRoomIndex = UnityEngine.Random.Range(0, self.abstractRooms.Length + 1);
+                    spawnRoom = self.abstractRooms[randRoomIndex];
+
+                    SpawnPup(self.game, self, spawnRoom);
+                }
+            }
 
             return orig(self);
         }
@@ -78,7 +96,7 @@ namespace SlugTemplate
         {
             if (game.StoryCharacter.value == MOD_ID)
             {
-                Logger.LogInfo("evilSpawnPup() slugbase ID check passed");
+                Logger.LogInfo("SpawnPupOnShelterRealize() slugbase ID check passed");
 
                 if (ModManager.MSC 
                     && self.realizedRoom == null
@@ -89,23 +107,10 @@ namespace SlugTemplate
                 {
                     Logger.LogInfo("Attempting to spawn SlugNPC...");
 
-                    float spawn = UnityEngine.Random.Range(0, 10);
-                    if (spawn <= 1.7)
+                    float spawn = UnityEngine.Random.Range(0f, 10f);
+                    if (spawn <= 1.7f)
                     {
-                        //copied from AbstractRoom.RealizeRoom()
-                        AbstractCreature abstractCreature = new AbstractCreature(world,
-                            StaticWorld.GetCreatureTemplate(MoreSlugcats.MoreSlugcatsEnums.CreatureTemplateType.SlugNPC),
-                            null,
-                            new WorldCoordinate(self.index, -1, -1, 0),
-                            game.GetNewID());
-                        self.AddEntity(abstractCreature);
-                        (abstractCreature.state as MoreSlugcats.PlayerNPCState).foodInStomach = 1;
-                        //game.GetStorySession.saveState.miscWorldSaveData.cyclesSinceLastSlugpup = -game.GetStorySession.saveState.miscWorldSaveData.cyclesSinceLastSlugpup;
-
-                        Logger.LogInfo("Spawn successful!");
-                        Logger.LogInfo(abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
-
-                        UnityEngine.Debug.Log("Evilslug: " + "Slugpup " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
+                        SpawnPup(game, world, self);
                     }
                     else
                     {
@@ -116,6 +121,22 @@ namespace SlugTemplate
             }
             
             orig(self, world, game);
+        }
+
+        private void SpawnPup(RainWorldGame game, World world, AbstractRoom room)
+        {
+            //copied from AbstractRoom.RealizeRoom()
+            AbstractCreature abstractCreature = new AbstractCreature(world,
+                StaticWorld.GetCreatureTemplate(MoreSlugcats.MoreSlugcatsEnums.CreatureTemplateType.SlugNPC),
+                null,
+                new WorldCoordinate(room.index, -1, -1, 0),
+                game.GetNewID());
+            room.AddEntity(abstractCreature);
+            (abstractCreature.state as MoreSlugcats.PlayerNPCState).foodInStomach = 1;
+
+            Logger.LogInfo(abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
+
+            UnityEngine.Debug.Log("Evilslug: " + "Slugpup " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
         }
 
         private void AddFood(On.Player.orig_ObjectEaten orig, Player self, IPlayerEdible edible)

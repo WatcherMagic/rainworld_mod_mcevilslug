@@ -8,8 +8,32 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <Reference Include="../lib/*.dll">
-            <Private>false</Private>
+        <Reference Include="..\lib\BepInEx.dll">
+          <Private>false</Private>
+        </Reference>
+        <Reference Include="..\lib\HOOKS-Assembly-CSharp.dll">
+          <Private>false</Private>
+        </Reference>
+        <Reference Include="..\lib\Mono.Cecil.dll">
+          <Private>false</Private>
+        </Reference>
+        <Reference Include="..\lib\Mono.Cecil.Rocks.dll">
+          <Private>false</Private>
+        </Reference>
+        <Reference Include="..\lib\MonoMod.RuntimeDetour.dll">
+          <Private>false</Private>
+        </Reference>
+        <Reference Include="..\lib\MonoMod.Utils.dll">
+          <Private>false</Private>
+        </Reference>
+        <Reference Include="..\lib\SlugBase.dll">
+          <Private>false</Private>
+        </Reference>
+        <Reference Include="..\lib\UnityEngine.CoreModule.dll">
+          <Private>false</Private>
+        </Reference>
+        <Reference Include="..\lib\UnityEngine.dll">
+          <Private>false</Private>
         </Reference>
     </ItemGroup>
     
@@ -28,6 +52,9 @@
       </Reference>
       <Reference Include="MonoMod.Utils">
         <HintPath>..\..\Reference\RainWorld_Data\Managed\MonoMod.Utils.dll</HintPath>
+      </Reference>
+      <Reference Include="Assembly-CSharp">
+        <HintPath>..\..\Reference\BepInEx\utils\PUBLIC-Assembly-CSharp.dll</HintPath>
       </Reference>
       <Reference Include="Unity.Mathematics">
         <HintPath>..\..\Reference\RainWorld_Data\Managed\Unity.Mathematics.dll</HintPath>
