@@ -221,11 +221,11 @@ namespace SlugTemplate
 
             if (self.slugcatStats.name.value == MOD_ID)
             {
-                //BodyChunk firstChunk = spear.firstChunk;
+                BodyChunk firstChunk = spear.firstChunk;
                 
-                //firstChunk.vel.y *= UnityEngine.Random.Range(-1f, 1f);
-                //firstChunk.vel.x *= UnityEngine.Random.Range(-1f, 1f);
-                //spear.SetRandomSpin();
+                firstChunk.vel.y *= UnityEngine.Random.Range(-1f, 1f);
+                firstChunk.vel.x *= UnityEngine.Random.Range(-1f, 1f);
+                spear.SetRandomSpin();
             }
         }
 
