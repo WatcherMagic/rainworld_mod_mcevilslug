@@ -12,10 +12,6 @@ namespace mcevilslug
         {
             try
             {
-                ManualLogSource log = Logger.CreateLogSource("EvilSlug SlugPupMaxCount Debug");
-                log.LogInfo("current character: " + session.game.StoryCharacter.value);
-                log.LogInfo("Mod ID: " + Plugin.MOD_ID);
-
                 if (session.game.StoryCharacter.value == Plugin.MOD_ID)
                 {
                     return 100;

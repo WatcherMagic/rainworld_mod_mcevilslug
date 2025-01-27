@@ -4,6 +4,8 @@ using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
 using System;
+using System.Collections.Generic;
+using System.Numerics;
 using System.Reflection;
 
 namespace SlugTemplate
@@ -21,7 +23,7 @@ namespace SlugTemplate
         private int framesPickupHeld = 0;
         private int framesSlugToBackInput = 0;
 
-        private int minPupsPerCycle = 2; //will always be 1 lower than the actual minimum due to Unity's Random.Range int overload
+        private int minPupsPerCycle = 2; //always 1 lower than the actual minimum due to Unity's Random.Range int overload
         private int maxPupsForceSpawned = 5;
 
         internal static BindingFlags bfAll = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
@@ -69,7 +71,7 @@ namespace SlugTemplate
             if (self.game.StoryCharacter.value == MOD_ID)
             {
                 UnityEngine.Debug.Log("Evilslug: Region pup chance is " + self.region.regionParams.slugPupSpawnChance);
-                UnityEngine.Debug.Log("Evilslug: slugPupMaxCount is " + self.game.GetStorySession.slugPupMaxCount);
+                //UnityEngine.Debug.Log("Evilslug: slugPupMaxCount is " + self.game.GetStorySession.slugPupMaxCount);
 
                 Logger.LogInfo("SpawnPupOnWorldLoad() initiated");
                 Logger.LogInfo("Pup spawn chance is " + self.region.regionParams.slugPupSpawnChance);
@@ -96,8 +98,6 @@ namespace SlugTemplate
         {
             if (game.StoryCharacter.value == MOD_ID)
             {
-                Logger.LogInfo("SpawnPupOnShelterRealize() slugbase ID check passed");
-
                 if (ModManager.MSC 
                     && self.realizedRoom == null
                     && !self.offScreenDen
@@ -105,7 +105,7 @@ namespace SlugTemplate
                     && !world.singleRoomWorld
                     && self.name != game.GetStorySession.saveState.denPosition)
                 {
-                    Logger.LogInfo("Attempting to spawn SlugNPC...");
+                    Logger.LogInfo("Attempting to spawn SlugNPC in realized shelter...");
 
                     float spawn = UnityEngine.Random.Range(0f, 10f);
                     if (spawn <= 1.7f)
@@ -131,12 +131,22 @@ namespace SlugTemplate
                 null,
                 new WorldCoordinate(room.index, -1, -1, 0),
                 game.GetNewID());
-            room.AddEntity(abstractCreature);
-            (abstractCreature.state as MoreSlugcats.PlayerNPCState).foodInStomach = 1;
 
-            Logger.LogInfo(abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
+            try
+            {
+                room.AddEntity(abstractCreature);
+                (abstractCreature.state as MoreSlugcats.PlayerNPCState).foodInStomach = 1;
 
-            UnityEngine.Debug.Log("Evilslug: " + "Slugpup " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
+                Logger.LogInfo(abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
+
+                UnityEngine.Debug.Log("Evilslug: " + "Slugpup " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
+            
+            } catch (Exception e)
+            {
+                Logger.LogError(e);
+            }
+
+            
         }
 
         private void AddFood(On.Player.orig_ObjectEaten orig, Player self, IPlayerEdible edible)
@@ -179,7 +189,7 @@ namespace SlugTemplate
                     framesSlugToBackInput += 1;
                     if (framesSlugToBackInput >= SLUG_TO_BACK_COUNTER)
                     {
-                        UnityEngine.Debug.Log("Evilslug: putting pup to back");
+                        Logger.LogInfo("Placing pup on back");
                         self.slugOnBack.SlugToBack(self.grasps[0].grabbed as Player);
                         framesSlugToBackInput = 0;
                     }
@@ -211,9 +221,11 @@ namespace SlugTemplate
 
             if (self.slugcatStats.name.value == MOD_ID)
             {
-                BodyChunk firstChunk = spear.firstChunk;
-                firstChunk.vel.y = firstChunk.vel.y * 0.33f;
-                spear.SetRandomSpin();
+                //BodyChunk firstChunk = spear.firstChunk;
+                
+                //firstChunk.vel.y *= UnityEngine.Random.Range(-1f, 1f);
+                //firstChunk.vel.x *= UnityEngine.Random.Range(-1f, 1f);
+                //spear.SetRandomSpin();
             }
         }
 
@@ -250,19 +262,26 @@ namespace SlugTemplate
                     x => x.MatchLdcI4(1),
                     x => x.MatchCallOrCallvirt(typeof(Player).GetMethod(nameof(Player.AddFood))),
                     x => x.MatchLdarg(0),
-                    x => x.MatchLdcI4(45), //0x2D
-                    x => x.MatchStfld(typeof(Player).GetField(nameof(Player.dontEatExternalFoodSourceCounter))));
+                    x => x.MatchLdcI4(0x2D)); //int32 45
 
                 c.Index += 3;
                 ILLabel skipFoodTarget = c.MarkLabel();
-                c.Index -= 1;
-                ILLabel addFoodTarget = c.MarkLabel();
-                c.Index -= 2;
-                //
-                c.Emit(OpCodes.Br, skipFoodTarget);
-                //c.Emit(OpCodes.Brfalse, addFoodTarget);
+                c.Index -= 3;
 
-                UnityEngine.Debug.Log(il.ToString());
+                c.Emit(OpCodes.Ldarg_0); //load the Player instance onto the stack.
+                c.EmitDelegate<Func<Player, bool>>((self) => { // Func will similarly follow the stack, the last type will be your return type
+                    if (self.slugcatStats.name.value == MOD_ID) // Change this to whatever your code is
+                    {
+                        return true;
+                    }
+                    return false;
+                });
+                // Since the return type is on the stack we can use it here
+                c.Emit(OpCodes.Brtrue, skipFoodTarget);
+
+
+                //Logger.LogInfo(il.ToString());
+                //UnityEngine.Debug.Log(il.ToString());
 
             } catch (Exception e)
             {
