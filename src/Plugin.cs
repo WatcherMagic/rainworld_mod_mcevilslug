@@ -4,8 +4,6 @@ using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
 using System;
-using System.Collections.Generic;
-using System.Numerics;
 using System.Reflection;
 
 namespace SlugTemplate
@@ -26,11 +24,21 @@ namespace SlugTemplate
         private int minPupsPerCycle = 2; //always 1 lower than the actual minimum due to Unity's Random.Range int overload
         private int maxPupsForceSpawned = 5;
 
+        private const float LEAVE_TRACKS_COUNTER = 10f;
+        private float leaveTracksTimer = 0.0f;
+
         internal static BindingFlags bfAll = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
 
 
         public void OnEnable()
         {
+            On.RainWorld.OnModsInit += Extras.WrapInit(LoadResources);
+
+            On.RainWorld.OnModsEnabled += RainWorld_OnModsEnabled;
+            On.RainWorld.OnModsDisabled += RainWorld_OnModsDisabled;
+
+            On.AbstractPhysicalObject.Realize += AbstractPhysicalObject_Realize;
+
             LoadManualHooks();
 
             On.World.SpawnPupNPCs += SpawnPupOnWorldLoad;
@@ -39,6 +47,7 @@ namespace SlugTemplate
             On.Player.GrabUpdate += EvilGrabUpdate;
             On.Player.ThrownSpear += EvilSpearThrow;
             On.Player.Update += EvilClimb;
+            On.Player.Update += LeaveTrack;
 
             try
             {
@@ -50,6 +59,36 @@ namespace SlugTemplate
             }
             
             //On.Player.CanMaulCreature += evilCanMaulSlug;
+        }
+
+        private void LoadResources(RainWorld rainWorld)
+        {
+            Futile.atlasManager.LoadImage("atlases/puptracks/pup_track");
+        }
+
+        private void RainWorld_OnModsEnabled(On.RainWorld.orig_OnModsEnabled orig,
+            RainWorld self, ModManager.Mod[] newlyEnabledMods)
+        {
+            orig(self, newlyEnabledMods);
+            Register.RegisterValues();
+        }
+
+        private void RainWorld_OnModsDisabled(On.RainWorld.orig_OnModsDisabled orig, 
+            RainWorld self, ModManager.Mod[] newlyDisabledMods)
+        {
+            orig(self, newlyDisabledMods);
+            foreach (ModManager.Mod mod in newlyDisabledMods)
+                if (mod.id == MOD_ID)
+                    Register.UnregisterValues();
+        }
+
+        private void AbstractPhysicalObject_Realize(On.AbstractPhysicalObject.orig_Realize orig, AbstractPhysicalObject self)
+        {
+            orig(self);
+            if (self.type == Register.PupTrack)
+            {
+                self.realizedObject = new Pup_Track(self);
+            }
         }
 
         private void LoadManualHooks()
@@ -287,6 +326,33 @@ namespace SlugTemplate
             {
                 Logger.LogError(e);
             }
+        }
+
+        private void LeaveTrack(On.Player.orig_Update orig, Player self, bool eu)
+        {
+            orig(self, eu);
+
+            //spawn track at player location
+            if (leaveTracksTimer >= LEAVE_TRACKS_COUNTER)
+            {
+                try
+                {
+                    AbstractPhysicalObject ab = new(self.room.world, Register.PupTrack, null,
+                    self.room.GetWorldCoordinate(self.bodyChunks[0].pos), self.room.game.GetNewID());
+                    // causes NullReferenceException if pup track is placed on collision layers 0 and 2
+
+                    Pup_Track track = new Pup_Track(ab);
+
+                    track.PlaceInRoom(self.room);
+                    UnityEngine.Debug.Log("[evilslug] Placed pup track");
+                } catch (Exception ex)
+                {
+                    Logger.LogError(ex);
+                }
+
+                leaveTracksTimer = 0;
+            }
+            leaveTracksTimer += UnityEngine.Time.deltaTime;
         }
 
         /*private bool evilCanMaulSlug(On.Player.orig_CanMaulCreature orig, Player self, Creature crit)
