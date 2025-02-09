@@ -1,0 +1,1 @@
+pupSpawnChance: 0.8
