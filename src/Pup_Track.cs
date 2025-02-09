@@ -11,7 +11,7 @@ namespace mcevilslug
         public float lastDarkness;
 
         private float age;
-        private const float SECONDS_BEFORE_DELETION = 10.0f;
+        private const float SECONDS_BEFORE_DELETION = 240.0f;
 
         public Pup_Track(AbstractPhysicalObject abstr) : base(abstr)
         {

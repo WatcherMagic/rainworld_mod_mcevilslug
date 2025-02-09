@@ -21,8 +21,8 @@ namespace SlugTemplate
         private int framesPickupHeld = 0;
         private int framesSlugToBackInput = 0;
 
-        private int minPupsPerCycle = 2; //always 1 lower than the actual minimum due to Unity's Random.Range int overload
-        private int maxPupsForceSpawned = 5;
+        private int minPupsPerCycle = 4; //always 1 lower than the actual minimum due to Unity's Random.Range int overload
+        private int maxPupsForceSpawned = 7;
 
         private const float LEAVE_TRACKS_COUNTER = 10f;
         private float leaveTracksTimer = 0.0f;
@@ -262,7 +262,7 @@ namespace SlugTemplate
             {
                 BodyChunk firstChunk = spear.firstChunk;
                 
-                firstChunk.vel.y *= UnityEngine.Random.Range(-1f, 1f);
+                firstChunk.vel.y *= UnityEngine.Random.Range(0f, 1f);
                 firstChunk.vel.x *= UnityEngine.Random.Range(-1f, 1f);
                 spear.SetRandomSpin();
             }
@@ -333,7 +333,7 @@ namespace SlugTemplate
             orig(self, eu);
 
             //spawn track at player location
-            if (leaveTracksTimer >= LEAVE_TRACKS_COUNTER)
+            if (leaveTracksTimer >= LEAVE_TRACKS_COUNTER && (self.isNPC || self.isSlugpup))
             {
                 try
                 {
