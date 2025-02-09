@@ -1,6 +1,4 @@
 ﻿using RWCustom;
-using System;
-using System.Drawing;
 using UnityEngine;
 
 namespace mcevilslug
@@ -13,25 +11,22 @@ namespace mcevilslug
         public float lastDarkness;
 
         private float age;
+        private const float SECONDS_BEFORE_DELETION = 10.0f;
 
         public Pup_Track(AbstractPhysicalObject abstr) : base(abstr)
         {
             bodyChunks = new BodyChunk[] { new BodyChunk(this, 0, Vector2.zero, 4, 0.05f) };
             bodyChunkConnections = new BodyChunkConnection[0]; //empty array for 1 chunk
+            bodyChunks[0].collideWithObjects = false;
             gravity = 0f;
-            airFriction = 0.999f;
-            waterFriction = 0.9f;
-            surfaceFriction = 0.5f;
+            airFriction = 0f;
+            waterFriction = 0f;
+            surfaceFriction = 0f;
             collisionLayer = 1;
-            bounce = 0.15f;
-            buoyancy = 0.9f;
+            bounce = 0f;
+            buoyancy = 0f;
 
             age = 0.0f;
-        }
-
-        private float getAge()
-        {
-            return age;
         }
 
         public override void Update(bool eu)
@@ -40,6 +35,25 @@ namespace mcevilslug
             lastRotation = rotation;
 
             age += Time.deltaTime;
+            if (age >= SECONDS_BEFORE_DELETION
+            || detectPlayerCollision(bodyChunks[0], room))
+            {
+                base.Destroy();
+                UnityEngine.Debug.Log("[evilslug] Puptrack destroyed");
+            }
+        }
+
+        private bool detectPlayerCollision(BodyChunk chunk, Room room)
+        {
+            foreach (Player player in room.PlayersInRoom)
+            {
+                if ((chunk.pos - player.bodyChunks[0].pos).magnitude < (chunk.rad + player.bodyChunks[0].rad))
+                {
+                    UnityEngine.Debug.Log("[evilslug] Player " + player.SlugCatClass + "collided with puptrack");
+                    return true;
+                }
+            }
+            return false;
         }
 
         public override void PlaceInRoom(Room placeRoom)
