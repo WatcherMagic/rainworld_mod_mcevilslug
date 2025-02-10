@@ -112,12 +112,12 @@ namespace SlugTemplate
         {
             if (self.game.StoryCharacter.value == MOD_ID)
             {
-                UnityEngine.Debug.Log("Evilslug: Region pup chance is " + self.region.regionParams.slugPupSpawnChance);
+                //UnityEngine.Debug.Log("[evilslug] Region pup chance is " + self.region.regionParams.slugPupSpawnChance);
                 //UnityEngine.Debug.Log("Evilslug: slugPupMaxCount is " + self.game.GetStorySession.slugPupMaxCount);
 
                 Logger.LogInfo("SpawnPupOnWorldLoad() initiated");
-                Logger.LogInfo("Pup spawn chance is " + self.region.regionParams.slugPupSpawnChance);
-                Logger.LogInfo("slugPupMaxCount is " + self.game.GetStorySession.slugPupMaxCount);
+                //Logger.LogInfo("Pup spawn chance is " + self.region.regionParams.slugPupSpawnChance);
+                //Logger.LogInfo("slugPupMaxCount is " + self.game.GetStorySession.slugPupMaxCount);
 
                 AbstractRoom spawnRoom = null;
                 int pupsThisCycle = UnityEngine.Random.Range(minPupsPerCycle, maxPupsForceSpawned);
@@ -129,7 +129,15 @@ namespace SlugTemplate
                     int randRoomIndex = UnityEngine.Random.Range(0, self.abstractRooms.Length + 1);
                     spawnRoom = self.abstractRooms[randRoomIndex];
 
-                    SpawnPup(self.game, self, spawnRoom);
+                    if (spawnRoom.offScreenDen)
+                    {
+                        Logger.LogInfo("Attempted pup spawn in offscreen den failed. Reattempting in new room...");
+                        pupsThisCycle++;
+                    }
+                    else
+                    {
+                        SpawnPup(self.game, self, spawnRoom);
+                    }
                 }
             }
 
