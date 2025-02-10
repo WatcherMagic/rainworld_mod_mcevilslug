@@ -11,7 +11,7 @@ namespace mcevilslug
         public float lastDarkness;
 
         private float age;
-        private const float SECONDS_BEFORE_DELETION = 240.0f;
+        private const float SECONDS_BEFORE_DELETION = 10.0f;
 
         public Pup_Track(AbstractPhysicalObject abstr) : base(abstr)
         {
@@ -36,14 +36,13 @@ namespace mcevilslug
 
             age += Time.deltaTime;
             if (age >= SECONDS_BEFORE_DELETION
-            || detectPlayerCollision(bodyChunks[0], room))
+            || DetectPlayerCollision(bodyChunks[0], room))
             {
-                base.Destroy();
-                UnityEngine.Debug.Log("[evilslug] Puptrack destroyed");
+                Burst();
             }
         }
 
-        private bool detectPlayerCollision(BodyChunk chunk, Room room)
+        private bool DetectPlayerCollision(BodyChunk chunk, Room room)
         {
             foreach (Player player in room.PlayersInRoom)
             {
@@ -54,6 +53,17 @@ namespace mcevilslug
                 }
             }
             return false;
+        }
+
+        private void Burst() 
+        {
+            if (base.slatedForDeletetion)
+            {
+                UnityEngine.Debug.Log("[evilslug] track is already slated for deletection!");
+                return;
+            }
+            UnityEngine.Debug.Log("[evilslug] destroying pup track");
+            base.Destroy();
         }
 
         public override void PlaceInRoom(Room placeRoom)

@@ -57,8 +57,6 @@ namespace SlugTemplate
             {
                 Logger.LogError(e);
             }
-            
-            //On.Player.CanMaulCreature += evilCanMaulSlug;
         }
 
         private void LoadResources(RainWorld rainWorld)
@@ -177,15 +175,31 @@ namespace SlugTemplate
                 (abstractCreature.state as MoreSlugcats.PlayerNPCState).foodInStomach = 1;
 
                 Logger.LogInfo(abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
-
                 UnityEngine.Debug.Log("Evilslug: " + "Slugpup " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
             
+                SetCritRandDestination(abstractCreature, world);
+
             } catch (Exception e)
             {
                 Logger.LogError(e);
             }
+        }
 
-            
+        private void SetCritRandDestination(AbstractCreature crit, World world)
+        {
+            int goalIndex = UnityEngine.Random.Range(0, world.abstractRooms.Length - 1);
+            AbstractRoom goal = world.abstractRooms[goalIndex];
+            if (goal.offScreenDen)
+            {
+                SetCritRandDestination(crit, world);
+            }
+            else
+            {
+                WorldCoordinate pos = goal.RandomNodeInRoom();
+                crit.AI.SetDestination(pos);
+                UnityEngine.Debug.Log("[evilslug] Set pup " + crit.ID + "'s destination to " + goal.name);
+                Logger.LogInfo("[evilslug] Set pup " + crit.ID + "'s destination to " + goal.name);
+            }
         }
 
         private void AddFood(On.Player.orig_ObjectEaten orig, Player self, IPlayerEdible edible)
@@ -344,7 +358,7 @@ namespace SlugTemplate
                     Pup_Track track = new Pup_Track(ab);
 
                     track.PlaceInRoom(self.room);
-                    UnityEngine.Debug.Log("[evilslug] Placed pup track");
+                    
                 } catch (Exception ex)
                 {
                     Logger.LogError(ex);
@@ -354,17 +368,5 @@ namespace SlugTemplate
             }
             leaveTracksTimer += UnityEngine.Time.deltaTime;
         }
-
-        /*private bool evilCanMaulSlug(On.Player.orig_CanMaulCreature orig, Player self, Creature crit)
-        {
-            //still doesn't fix spup not taking damage
-
-            if (!crit.dead && self.slugcatStats.name.value == MOD_ID && (crit is Player))
-            {
-                return true;
-            }
-
-            return orig(self, crit);
-        }*/
     }
 }
