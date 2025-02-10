@@ -196,7 +196,7 @@ namespace SlugTemplate
             else
             {
                 WorldCoordinate pos = goal.RandomNodeInRoom();
-                crit.AI.SetDestination(pos);
+                crit.abstractAI.SetDestination(pos);
                 UnityEngine.Debug.Log("[evilslug] Set pup " + crit.ID + "'s destination to " + goal.name);
                 Logger.LogInfo("[evilslug] Set pup " + crit.ID + "'s destination to " + goal.name);
             }
