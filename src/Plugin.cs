@@ -4,6 +4,8 @@ using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace SlugTemplate
@@ -27,6 +29,8 @@ namespace SlugTemplate
         private const float LEAVE_TRACKS_COUNTER = 10f;
         private float leaveTracksTimer = 0.0f;
 
+        private List<AbstractRoom> realizedShelters = new List<AbstractRoom>();
+
         internal static BindingFlags bfAll = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
 
 
@@ -43,6 +47,7 @@ namespace SlugTemplate
 
             On.World.SpawnPupNPCs += SpawnPupOnWorldLoad;
             On.AbstractRoom.RealizeRoom += SpawnPupOnShelterRealize;
+            //On.World.LoadWorld += ClearList;
             On.Player.ObjectEaten += AddFood;
             On.Player.GrabUpdate += EvilGrabUpdate;
             On.Player.ThrownSpear += EvilSpearThrow;
@@ -143,22 +148,52 @@ namespace SlugTemplate
                     && self.name != game.GetStorySession.saveState.denPosition)
                 {
                     Logger.LogInfo("Attempting to spawn SlugNPC in realized shelter...");
+                    // bool hasBeenRealized = false;
 
-                    float spawn = UnityEngine.Random.Range(0f, 10f);
-                    if (spawn <= 1.7f)
-                    {
-                        SpawnPup(game, world, self);
-                    }
-                    else
-                    {
-                        Logger.LogInfo("Spawn failed due to random chance");
-                    }
-                    
+                    // if (realizedShelters.Any())
+                    // {
+                    //     foreach (AbstractRoom shelter in realizedShelters)
+                    //     {
+                    //         if (shelter.name == self.name)
+                    //         {
+                    //             hasBeenRealized = true;
+                    //             Logger.LogInfo("Failed! This shelter has already been realized once");
+                    //         }
+                    //     }
+                    // }
+
+                    // if (!hasBeenRealized)
+                    // {
+                        float spawn = UnityEngine.Random.Range(0f, 10f);
+                        if (spawn <= 1.7f)
+                        {
+                            SpawnPup(game, world, self);
+                        }
+                        else
+                        {
+                            Logger.LogInfo("Spawn failed due to random chance");
+                        }
+                        realizedShelters.Add(self);
+                    //}
                 }
             }
             
             orig(self, world, game);
         }
+
+        // private void ClearList(On.World.orig_LoadWorld orig, World self, SlugcatStats.Name slugcatNumber, List<AbstractRoom> abstractRoomsList, int[] swarmRooms, int[] shelters, int[] gates)
+        // {
+        //     Logger.LogInfo("Clearing realized shelter list on world load");
+        //     if (realizedShelters.Any())
+        //     {
+        //         Logger.LogInfo("Shelters realized previously:\n" + String.Join(",\n", realizedShelters));
+        //         realizedShelters.Clear();
+        //     }
+        //     else
+        //     {
+        //         Logger.LogInfo("realizedShelters list was empty");
+        //     }
+        // }
 
         private void SpawnPup(RainWorldGame game, World world, AbstractRoom room)
         {
