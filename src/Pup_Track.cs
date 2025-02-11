@@ -11,9 +11,11 @@ namespace mcevilslug
         public float lastDarkness;
 
         private float age;
-        private const float SECONDS_BEFORE_DELETION = 10.0f;
+        private const float SECONDS_BEFORE_DELETION = 240f;
 
-        public Pup_Track(AbstractPhysicalObject abstr) : base(abstr)
+        private EntityID pupID;
+
+        public Pup_Track(AbstractPhysicalObject abstr/*, EntityID pupSpawnedFrom*/) : base(abstr)
         {
             bodyChunks = new BodyChunk[] { new BodyChunk(this, 0, Vector2.zero, 4, 0.05f) };
             bodyChunkConnections = new BodyChunkConnection[0]; //empty array for 1 chunk
@@ -26,6 +28,7 @@ namespace mcevilslug
             bounce = 0f;
             buoyancy = 0f;
 
+            //pupID = pupSpawnedFrom;
             age = 0.0f;
         }
 
@@ -35,8 +38,11 @@ namespace mcevilslug
             lastRotation = rotation;
 
             age += Time.deltaTime;
-            if (age >= SECONDS_BEFORE_DELETION
-            || DetectPlayerCollision(bodyChunks[0], room))
+            if (age >= SECONDS_BEFORE_DELETION)
+            {
+                base.Destroy();
+            }
+            else if (DetectPlayerCollision(bodyChunks[0], room))
             {
                 Burst();
             }
@@ -46,11 +52,13 @@ namespace mcevilslug
         {
             foreach (Player player in room.PlayersInRoom)
             {
-                if ((chunk.pos - player.bodyChunks[0].pos).magnitude < (chunk.rad + player.bodyChunks[0].rad))
+                if ((chunk.pos - player.bodyChunks[0].pos).magnitude < (chunk.rad + player.bodyChunks[0].rad)
+                || (chunk.pos - player.bodyChunks[1].pos).magnitude < (chunk.rad + player.bodyChunks[1].rad))
                 {
-                    UnityEngine.Debug.Log("[evilslug] Player " + player.SlugCatClass + "collided with puptrack");
+                    //UnityEngine.Debug.Log("[evilslug] Player " + player.SlugCatClass + "collided with puptrack");
                     return true;
                 }
+                    
             }
             return false;
         }
@@ -59,10 +67,8 @@ namespace mcevilslug
         {
             if (base.slatedForDeletetion)
             {
-                UnityEngine.Debug.Log("[evilslug] track is already slated for deletection!");
                 return;
             }
-            UnityEngine.Debug.Log("[evilslug] destroying pup track");
             base.Destroy();
         }
 
@@ -84,6 +90,11 @@ namespace mcevilslug
 
         public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
         {
+            if (base.slatedForDeletetion)
+            {
+                RemoveSpritesFromContainer(sLeaser);
+            }
+
             Vector2 pos = Vector2.Lerp(firstChunk.lastPos, firstChunk.pos, timeStacker);
             Vector2 rt = Vector3.Slerp(lastRotation, rotation, timeStacker);
             lastDarkness = darkness;
@@ -91,12 +102,28 @@ namespace mcevilslug
             darkness = rCam.room.Darkness(pos) * (1f - rCam.room.LightSourceExposure(pos));
             if (darkness != lastDarkness)
                 ApplyPalette(sLeaser, rCam, rCam.currentPalette);
+                
             foreach (FSprite sprite in sLeaser.sprites)
             {
                 sprite.x = pos.x - camPos.x;
                 sprite.y = pos.y - camPos.y;
                 sprite.rotation = Custom.VecToDeg(rt);
+
+                //sprite._color = Custom.hexToColor(pupID.ToString());
+                //sprite._alpha = age * SECONDS_BEFORE_DELETION / 100;
             }
+
+            // float decay = age * SECONDS_BEFORE_DELETION / 100;
+            // if (decay > 90.0f) {  }
+            // if (decay < 90.0f) {  }
+            // if (decay < 80.0f) {  }
+            // if (decay < 70.0f) {  }
+            // if (decay < 60.0f) {  }
+            // if (decay < 50.0f) {  }
+            // if (decay < 40.0f) {  }
+            // if (decay < 30.0f) {  }
+            // if (decay < 20.0f) {  }
+            // if (decay < 10.0f) {  }
         }
 
         public void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
@@ -112,6 +139,14 @@ namespace mcevilslug
             {
                 sprite.RemoveFromContainer();
                 newContatiner.AddChild(sprite);
+            }
+        }
+
+        private void RemoveSpritesFromContainer(RoomCamera.SpriteLeaser sLeaser)
+        {
+            foreach (FSprite sprite in sLeaser.sprites)
+            {
+                sprite.RemoveFromContainer();
             }
         }
     }

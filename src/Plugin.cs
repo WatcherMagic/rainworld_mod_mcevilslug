@@ -1,11 +1,11 @@
 ﻿using BepInEx;
+using IL.RWCustom;
 using mcevilslug;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 
 namespace SlugTemplate
@@ -218,7 +218,7 @@ namespace SlugTemplate
                 (abstractCreature.state as MoreSlugcats.PlayerNPCState).foodInStomach = 1;
 
                 Logger.LogInfo(abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
-                UnityEngine.Debug.Log("Evilslug: " + "Slugpup " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
+                UnityEngine.Debug.Log("[evilslug] " + abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
             
                 SetCritRandDestination(abstractCreature, world);
 
@@ -241,7 +241,7 @@ namespace SlugTemplate
                 WorldCoordinate pos = goal.RandomNodeInRoom();
                 crit.abstractAI.SetDestination(pos);
                 UnityEngine.Debug.Log("[evilslug] Set pup " + crit.ID + "'s destination to " + goal.name);
-                Logger.LogInfo("[evilslug] Set pup " + crit.ID + "'s destination to " + goal.name);
+                Logger.LogInfo("Set pup " + crit.ID + "'s destination to " + goal.name);
             }
         }
 
@@ -390,15 +390,17 @@ namespace SlugTemplate
             orig(self, eu);
 
             //spawn track at player location
-            if (leaveTracksTimer >= LEAVE_TRACKS_COUNTER && (self.isNPC || self.isSlugpup))
+            if (leaveTracksTimer >= LEAVE_TRACKS_COUNTER 
+            && (self.isNPC || self.isSlugpup))
             {
                 try
                 {
                     AbstractPhysicalObject ab = new(self.room.world, Register.PupTrack, null,
                     self.room.GetWorldCoordinate(self.bodyChunks[0].pos), self.room.game.GetNewID());
                     // causes NullReferenceException if pup track is placed on collision layers 0 and 2
+                    //EntityID pupID = self.abstractCreature.ID;
 
-                    Pup_Track track = new Pup_Track(ab);
+                    Pup_Track track = new Pup_Track(ab/*, pupID*/);
 
                     track.PlaceInRoom(self.room);
                     
