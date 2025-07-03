@@ -1,21 +1,31 @@
-﻿using RWCustom;
+﻿using IL.RWCustom;
+using Mono.CompilerServices.SymbolWriter;
 using UnityEngine;
 
 namespace mcevilslug
 {
     public class Pup_Track : PhysicalObject, IDrawable
     {
-        public Vector2 rotation;
-        public Vector2 lastRotation;
-        public float darkness;
-        public float lastDarkness;
+        private Vector2 _spawnPos;
+        private const float _BOB_RADIUS = 500f;
+        private bool _bobUp = true;
+        private bool _visible = false;
+        private LightSource _light = null;
+        private const float _LIGHT_KILLED_FADE_IN_SECONDS = 0.5f;
+        private float _lightKilledFade = 0f;
 
-        private float age;
-        private const float SECONDS_BEFORE_DELETION = 240f;
+        private float _age = 0f;
+        private float _secondsVisible = 0f;
+        private const float _SECONDS_BEFORE_DELETION = 5f; //240
+        public const float _VISIBLE_FOR = 30f;
+        private Color _pupColor;
+        private Color _lightColor;
+        private readonly Color _invisibleColor = new Color(0f, 0f, 0f);
+        private const float _LIGHT_RAD = 40f;
+        private bool _beingKilled = false;
+        private const float _MIN_BRIGHTNESS = 0.3f;
 
-        private EntityID pupID;
-
-        public Pup_Track(AbstractPhysicalObject abstr/*, EntityID pupSpawnedFrom*/) : base(abstr)
+        public Pup_Track(AbstractPhysicalObject abstr) : base(abstr)
         {
             bodyChunks = new BodyChunk[] { new BodyChunk(this, 0, Vector2.zero, 4, 0.05f) };
             bodyChunkConnections = new BodyChunkConnection[0]; //empty array for 1 chunk
@@ -28,24 +38,134 @@ namespace mcevilslug
             bounce = 0f;
             buoyancy = 0f;
 
-            //pupID = pupSpawnedFrom;
-            age = 0.0f;
+            _age = 0.0f;
+
+            _spawnPos = firstChunk.pos;
         }
 
         public override void Update(bool eu)
         {
             base.Update(eu);
-            lastRotation = rotation;
 
-            age += Time.deltaTime;
-            if (age >= SECONDS_BEFORE_DELETION)
+            Bob();
+
+            if (_light != null)
             {
-                base.Destroy();
+                Debug.Log("[evilslug] " + base.abstractPhysicalObject.ID + "alpha: " + _light.Alpha);
+
+                //light.setAlpha = 1f; //100f / age * SECONDS_BEFORE_DELETION;
+                if (!_visible)
+                {
+                    room.RemoveObject(_light);
+                    _light = null;
+                }
+                else
+                {
+                    Flicker();
+                    _light.setPos = firstChunk.pos;
+                    _light.setAlpha = 1f - (_MIN_BRIGHTNESS + (_age / _SECONDS_BEFORE_DELETION * _MIN_BRIGHTNESS));
+                }
+            }
+            else
+            {
+                if (_pupColor.g < 0.2f && _pupColor.b < 0.2f && _pupColor.r < 0.2f)
+                {
+                    _lightColor = _pupColor + new Color(0.3f - _pupColor.g, 0.3f - _pupColor.b, 0.3f - _pupColor.r);
+                }
+                else
+                {
+                    _lightColor = _pupColor;
+                }
+
+                _light = new LightSource(firstChunk.pos, false, _lightColor, this)
+                {
+                    setPos = firstChunk.pos,
+                    setAlpha = new float?(1f),
+                    setRad = _LIGHT_RAD
+                    //affectedByPaletteDarkness = 0.5f
+                };
+                room.AddObject(_light);
+            }
+
+            if (_visible)
+            {
+                _secondsVisible += Time.deltaTime;
+                if (_secondsVisible >= _VISIBLE_FOR)
+                {
+                    SetVisibleFalse();
+                }
+            }
+
+            _age += Time.deltaTime;
+            if (_age >= _SECONDS_BEFORE_DELETION && !_beingKilled)
+            {
+                Kill();
             }
             else if (DetectPlayerCollision(bodyChunks[0], room))
             {
                 Burst();
             }
+        }
+
+        private void Bob()
+        {
+            if (_bobUp)
+            {
+                //firstChunk.vel.y += 1.2f;
+            }
+            else
+            {
+                //firstChunk.vel.y -= 1.2f;
+            }
+
+            // if (Vector2.Distance(spawnPos, firstChunk.pos) >= BOB_RADIUS)
+            // {
+            //     bobUp = !bobUp;
+            // }
+        }
+
+        private void Flicker()
+        {
+            //newRad = LIGHT_RAD * Random.Range(0.8f, 1.2f);
+        }
+
+        public void SetPupColor(Color c)
+        {
+            _pupColor = c;
+        }
+
+        public void SetVisibleFalse()
+        {
+            _visible = false;
+        }
+
+        public void SetVisibleTrue()
+        {
+            _visible = true;
+        }
+
+        public bool Visibility()
+        {
+            return _visible;
+        }
+
+        private void Kill()
+        {
+            _beingKilled = true;
+            if (slatedForDeletetion)
+            {
+                _light = null;
+                return;
+            }
+            // if (_lightKilledFade < _LIGHT_KILLED_FADE_IN_SECONDS)
+            // {
+            //     _lightKilledFade += Time.deltaTime;
+            //     _light.setAlpha = _MIN_BRIGHTNESS - (_lightKilledFade / _LIGHT_KILLED_FADE_IN_SECONDS * 0.3f);
+            // }
+            // else
+            // {
+                base.Destroy();
+            //}
         }
 
         private bool DetectPlayerCollision(BodyChunk chunk, Room room)
@@ -58,28 +178,21 @@ namespace mcevilslug
                     //UnityEngine.Debug.Log("[evilslug] Player " + player.SlugCatClass + "collided with puptrack");
                     return true;
                 }
-                    
+
             }
             return false;
         }
 
         private void Burst() 
         {
-            if (base.slatedForDeletetion)
-            {
-                return;
-            }
-            base.Destroy();
+            Kill();
         }
 
         public override void PlaceInRoom(Room placeRoom)
         {
-            base.PlaceInRoom(placeRoom);
-            
             firstChunk.HardSetPosition(placeRoom.MiddleOfTile(abstractPhysicalObject.pos.Tile));
-            
-            rotation = Custom.RNV(); //Custom.RNV() sets random direction
-            lastRotation = rotation;
+
+            base.PlaceInRoom(placeRoom);
         }
 
         public void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
@@ -90,45 +203,35 @@ namespace mcevilslug
 
         public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
         {
-            if (base.slatedForDeletetion)
+            if (slatedForDeletetion)
             {
                 RemoveSpritesFromContainer(sLeaser);
             }
 
             Vector2 pos = Vector2.Lerp(firstChunk.lastPos, firstChunk.pos, timeStacker);
-            Vector2 rt = Vector3.Slerp(lastRotation, rotation, timeStacker);
-            lastDarkness = darkness;
-            //The formula for determining darkness is a template
-            darkness = rCam.room.Darkness(pos) * (1f - rCam.room.LightSourceExposure(pos));
-            if (darkness != lastDarkness)
-                ApplyPalette(sLeaser, rCam, rCam.currentPalette);
-                
+
             foreach (FSprite sprite in sLeaser.sprites)
             {
                 sprite.x = pos.x - camPos.x;
                 sprite.y = pos.y - camPos.y;
-                sprite.rotation = Custom.VecToDeg(rt);
 
-                //sprite._color = Custom.hexToColor(pupID.ToString());
-                //sprite._alpha = age * SECONDS_BEFORE_DELETION / 100;
+                if (!_visible && sprite._color != _invisibleColor)
+                {
+                    sprite._color = _invisibleColor;
+                }
+                else if (sprite._color == _invisibleColor)
+                {
+                    sprite._color = _pupColor;
+                }
             }
 
-            // float decay = age * SECONDS_BEFORE_DELETION / 100;
-            // if (decay > 90.0f) {  }
-            // if (decay < 90.0f) {  }
-            // if (decay < 80.0f) {  }
-            // if (decay < 70.0f) {  }
-            // if (decay < 60.0f) {  }
-            // if (decay < 50.0f) {  }
-            // if (decay < 40.0f) {  }
-            // if (decay < 30.0f) {  }
-            // if (decay < 20.0f) {  }
-            // if (decay < 10.0f) {  }
+            ApplyPalette(sLeaser, rCam, rCam.currentPalette);
         }
 
         public void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
         {
-            //item is unaffected by room pallet
+            sLeaser.sprites[0].color = _pupColor;
+            //sLeaser.sprites[0]._alpha = 100f / age * SECONDS_BEFORE_DELETION;
         }
 
         public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContatiner)

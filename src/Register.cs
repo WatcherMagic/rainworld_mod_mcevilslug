@@ -1,18 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using IL.MoreSlugcats;
 
 namespace mcevilslug
 {
     public static class Register
     {
         public static AbstractPhysicalObject.AbstractObjectType PupTrack;
+        public static MoreSlugcats.SlugNPCAI.BehaviorType BeingGrabbed;
 
         public static void RegisterValues()
         {
             PupTrack = new AbstractPhysicalObject.AbstractObjectType("PupTrack", true);
+            BeingGrabbed = new MoreSlugcats.SlugNPCAI.BehaviorType("BeingGrabbed", true);
         }
 
         public static void UnregisterValues()
@@ -20,6 +18,10 @@ namespace mcevilslug
             AbstractPhysicalObject.AbstractObjectType pupTrack = PupTrack;
             pupTrack?.Unregister();
             PupTrack = null;
+
+            MoreSlugcats.SlugNPCAI.BehaviorType beingGrabbed = BeingGrabbed;
+            beingGrabbed?.Unregister();
+            BeingGrabbed = null;
         }
     }
 }

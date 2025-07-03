@@ -8,31 +8,31 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <Reference Include="..\lib\BepInEx.dll">
+        <Reference Include="..\..\Reference\BepInEx\core\BepInEx.dll">
           <Private>false</Private>
         </Reference>
-        <Reference Include="..\lib\HOOKS-Assembly-CSharp.dll">
+        <Reference Include="..\..\Reference\BepInEx\plugins\HOOKS-Assembly-CSharp.dll">
           <Private>false</Private>
         </Reference>
-        <Reference Include="..\lib\Mono.Cecil.dll">
+        <Reference Include="..\..\Reference\RainWorld_Data\Managed\Mono.Cecil.dll">
           <Private>false</Private>
         </Reference>
-        <Reference Include="..\lib\Mono.Cecil.Rocks.dll">
+        <Reference Include="..\..\Reference\RainWorld_Data\Managed\Mono.Cecil.Rocks.dll">
           <Private>false</Private>
         </Reference>
-        <Reference Include="..\lib\MonoMod.RuntimeDetour.dll">
+        <Reference Include="..\..\Reference\RainWorld_Data\Managed\MonoMod.RuntimeDetour.dll">
           <Private>false</Private>
         </Reference>
-        <Reference Include="..\lib\MonoMod.Utils.dll">
+        <Reference Include="..\..\Reference\RainWorld_Data\Managed\MonoMod.Utils.dll">
           <Private>false</Private>
         </Reference>
         <Reference Include="..\lib\SlugBase.dll">
           <Private>false</Private>
         </Reference>
-        <Reference Include="..\lib\UnityEngine.CoreModule.dll">
+        <Reference Include="..\..\Reference\RainWorld_Data\Managed\UnityEngine.CoreModule.dll">
           <Private>false</Private>
         </Reference>
-        <Reference Include="..\lib\UnityEngine.dll">
+        <Reference Include="..\..\Reference\RainWorld_Data\Managed\UnityEngine.dll">
           <Private>false</Private>
         </Reference>
     </ItemGroup>
