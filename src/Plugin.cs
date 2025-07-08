@@ -13,10 +13,6 @@ namespace SlugTemplate
 {
     [BepInPlugin(MOD_ID, "Evil McEvilslug", "0.1.0")]
 
-    //[BepInDependency("rwremix", BepInDependency.DependencyFlags.HardDependency)]
-    //[BepInDependency("moreslugcats", BepInDependency.DependencyFlags.HardDependency)]
-    //[BepInDependency("watcher", BepInDependency.DependencyFlags.SoftDependency)]
-
     class Plugin : BaseUnityPlugin
     {
         public const string MOD_ID = "mcevilslug";
@@ -49,6 +45,7 @@ namespace SlugTemplate
         {
             On.RainWorld.OnModsInit += Extras.WrapInit(LoadResources);
 
+            //register and unregister enums for pup tracks
             On.RainWorld.OnModsEnabled += RainWorld_OnModsEnabled;
             On.RainWorld.OnModsDisabled += RainWorld_OnModsDisabled;
 
@@ -132,7 +129,7 @@ namespace SlugTemplate
 
         private int SpawnPupOnWorldLoad(On.World.orig_SpawnPupNPCs orig, World self)
         {
-            if (self.game.IsStorySession && self.game.StoryCharacter.value == MOD_ID)
+            if (ModManager.MSC && self.game.IsStorySession && self.game.StoryCharacter.value == MOD_ID)
             {
                 //UnityEngine.Debug.Log("[evilslug] Region pup chance is " + self.region.regionParams.slugPupSpawnChance);
                 //UnityEngine.Debug.Log("Evilslug: slugPupMaxCount is " + self.game.GetStorySession.slugPupMaxCount);
@@ -227,27 +224,30 @@ namespace SlugTemplate
 
         private void SpawnPup(RainWorldGame game, World world, AbstractRoom room)
         {
-            //copied from AbstractRoom.RealizeRoom()
-            AbstractCreature abstractCreature = new AbstractCreature(world,
-                StaticWorld.GetCreatureTemplate(MoreSlugcats.MoreSlugcatsEnums.CreatureTemplateType.SlugNPC),
-                null,
-                new WorldCoordinate(room.index, -1, -1, 0),
-                game.GetNewID());
-
-            try
+            if (ModManager.MSC)
             {
-                room.AddEntity(abstractCreature);
-                (abstractCreature.state as MoreSlugcats.PlayerNPCState).foodInStomach = 1;
+                //copied from AbstractRoom.RealizeRoom()
+                AbstractCreature abstractCreature = new AbstractCreature(world,
+                    StaticWorld.GetCreatureTemplate(MoreSlugcats.MoreSlugcatsEnums.CreatureTemplateType.SlugNPC),
+                    null,
+                    new WorldCoordinate(room.index, -1, -1, 0),
+                    game.GetNewID());
 
-                Logger.LogInfo(abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
-                UnityEngine.Debug.Log("[evilslug] " + abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
+                try
+                {
+                    room.AddEntity(abstractCreature);
+                    (abstractCreature.state as MoreSlugcats.PlayerNPCState).foodInStomach = 1;
 
-                //SetCritRandDestination(abstractCreature, world);
+                    Logger.LogInfo(abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
+                    UnityEngine.Debug.Log("[evilslug] " + abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
 
-            }
-            catch (Exception e)
-            {
-                Logger.LogError(e);
+                    //SetCritRandDestination(abstractCreature, world);
+
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError(e);
+                }
             }
         }
 
@@ -493,14 +493,16 @@ namespace SlugTemplate
                     }
                 }
 
-                if (Input.GetKeyDown(KeyCode.T) && lastSniff >= SNIFF_COUNTER)
+                if (((ModManager.Watcher && self.input[0].spec)
+                || Input.GetKeyDown(KeyCode.T)) && lastSniff >= SNIFF_COUNTER)
                 {
                     SniffAnimation(self);
                     lastSniff = 0f;
                     tracksVisible = true;
                 }
-                else if (Input.GetKeyDown(KeyCode.T))
+                else if (ModManager.Watcher && self.input[0].spec || Input.GetKeyDown(KeyCode.T))
                 {
+                    UnityEngine.Debug.Log("[evilslug] can't sniff yet!");
                     // UnityEngine.Debug.Log("[evilslug] can't sniff! Can sniff in "
                     // + (SNIFF_COUNTER - lastSniff) + " seconds");
                 }

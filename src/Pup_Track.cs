@@ -51,23 +51,28 @@ namespace mcevilslug
 
             if (_light != null)
             {
-                Debug.Log("[evilslug] " + base.abstractPhysicalObject.ID + "alpha: " + _light.Alpha);
+                //Debug.Log("[evilslug] light not null, " + base.abstractPhysicalObject.ID + " alpha: " + _light.Alpha);
 
                 //light.setAlpha = 1f; //100f / age * SECONDS_BEFORE_DELETION;
                 if (!_visible)
                 {
                     room.RemoveObject(_light);
                     _light = null;
+                    //Debug.Log("[evilslug] Destroyed light for " + base.abstractPhysicalObject.ID);
                 }
                 else
                 {
                     Flicker();
                     _light.setPos = firstChunk.pos;
+                    //Debug.Log("[evilslug] adjusting alpha for " + base.abstractPhysicalObject.ID);
                     _light.setAlpha = 1f - (_MIN_BRIGHTNESS + (_age / _SECONDS_BEFORE_DELETION * _MIN_BRIGHTNESS));
+                    //Debug.Log("[evilslug] new " + base.abstractPhysicalObject.ID + " alpha: " + _light.Alpha);
                 }
             }
             else
             {
+                //Debug.Log("[evilslug] Adding light to " + base.abstractPhysicalObject.ID);
+
                 if (_pupColor.g < 0.2f && _pupColor.b < 0.2f && _pupColor.r < 0.2f)
                 {
                     _lightColor = _pupColor + new Color(0.3f - _pupColor.g, 0.3f - _pupColor.b, 0.3f - _pupColor.r);
@@ -137,11 +142,13 @@ namespace mcevilslug
         public void SetVisibleFalse()
         {
             _visible = false;
+            //Debug.Log("[evilslug] set track visibility to False");
         }
 
         public void SetVisibleTrue()
         {
             _visible = true;
+            //Debug.Log("[evilslug] set track visibility to True");
         }
 
         public bool Visibility()
