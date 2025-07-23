@@ -440,9 +440,9 @@ namespace SlugTemplate
             leaveTracksTimer += Time.deltaTime;
         }
 
-        private const float SNIFF_COUNTER = 15f; //15 or 20
-        private float lastSniff = SNIFF_COUNTER;
-        private bool setNotifySound = false;
+        private const float _SNIFF_COUNTER = 15f; //15 or 20
+        private float _lastSniff = _SNIFF_COUNTER;
+        private bool _setNotifySound = false;
         private void Sniff(Player self)
         {
             if (self.slugcatStats.name.value == MOD_ID)
@@ -450,11 +450,12 @@ namespace SlugTemplate
                 if (ModManager.Watcher && self.input[0].spec
                     || !ModManager.Watcher && self.input[0].pckp && self.input[0].mp)
                 {
-                    if (lastSniff >= SNIFF_COUNTER)
+                    if (_lastSniff >= _SNIFF_COUNTER)
                     {
-                        setNotifySound = true;
+                        Debug.Log("[McEvil] Sniffing");
+                        _setNotifySound = true;
                         SniffAnimation(self);
-                        lastSniff = 0f;
+                        _lastSniff = 0f;
                         for (int i = 0; i < self.room.physicalObjects.Length; i++)
                         {
                             for (int j = 0; j < self.room.physicalObjects[i].Count; j++)
@@ -466,22 +467,22 @@ namespace SlugTemplate
                             }
                         }
                     }
+                    else
+                    {
+                        Debug.Log("[McEvil] Can't sniff yet!");
+                    }
                 }
-                else
-                {
-                    Debug.Log("[McEvil] Can't sniff yet!");
-                }
-                if (SNIFF_COUNTER >= lastSniff && setNotifySound)
+                if (_lastSniff >= _SNIFF_COUNTER && _setNotifySound)
                 {
                     self.room.PlaySound(SoundID.Token_Collect);
-                    setNotifySound = false;
+                    _setNotifySound = false;
                 }
             }
         }
 
         private void SniffAnimation(Player self)
         {
-            self.Blink(500);
+            self.Blink(300);
         }
 
         // private void UpdatePupAIState(Player npc)
