@@ -28,14 +28,7 @@ namespace SlugTemplate
         private int minPupsPerCycle = 4; //always 1 lower than the actual minimum due to Unity's Random.Range int overload
         private int maxPupsForceSpawned = 7;
 
-        private const float LEAVE_TRACKS_COUNTER = 30f;
-        private float leaveTracksTimer = LEAVE_TRACKS_COUNTER;
-
         private const int PUP_CHUNK_GRABBED = 0;
-
-        private const float SNIFF_COUNTER = 0f; //20
-        private float lastSniff = SNIFF_COUNTER;
-        private bool tracksVisible = false;
 
         private List<AbstractRoom> realizedShelters = new List<AbstractRoom>();
 
@@ -54,7 +47,7 @@ namespace SlugTemplate
             LoadManualHooks();
 
             //world hooks
-            On.World.SpawnPupNPCs += SpawnPupOnWorldLoad;
+            //On.World.SpawnPupNPCs += SpawnPupOnWorldLoad;
             On.AbstractRoom.RealizeRoom += SpawnPupOnShelterRealize;
             //On.World.LoadWorld += ClearList;
 
@@ -421,45 +414,47 @@ namespace SlugTemplate
             Sniff(self);
         }
 
+        private const float LEAVE_TRACKS_COUNTER = 10f;
+        private float leaveTracksTimer = 0f;
         private void LeaveTrack(Player self)
         {
             //spawn track at player location
             if (leaveTracksTimer >= LEAVE_TRACKS_COUNTER
             && (self.isNPC || self.isSlugpup))
             {
-                //UnityEngine.Debug.Log("[evilslug] attempting to leave track...");
-
                 try
                 {
                     AbstractPhysicalObject abstractTrack = new(self.room.world, Register.PupTrack, null,
-                    self.room.GetWorldCoordinate(self.bodyChunks[0].pos), self.room.game.GetNewID());
+                    self.room.GetWorldCoordinate(self.bodyChunks[1].pos), self.room.game.GetNewID());
                     Pup_Track track = new Pup_Track(abstractTrack);
                     track.SetPupColor((self.graphicsModule as PlayerGraphics).player.ShortCutColor());
                     track.PlaceInRoom(self.room);
-                    //UnityEngine.Debug.Log("[evilslug] placed track! ID: " + track.abstractPhysicalObject.ID);
                 }
                 catch (Exception ex)
                 {
                     Logger.LogError(ex);
                 }
 
-                leaveTracksTimer = 0;
+                leaveTracksTimer = 0f;
             }
             leaveTracksTimer += Time.deltaTime;
         }
 
+        private const float SNIFF_COUNTER = 15f; //15 or 20
+        private float lastSniff = SNIFF_COUNTER;
+        private bool setNotifySound = false;
         private void Sniff(Player self)
         {
             if (self.slugcatStats.name.value == MOD_ID)
             {
-                if (tracksVisible == true)
+                if (ModManager.Watcher && self.input[0].spec
+                    || !ModManager.Watcher && self.input[0].pckp && self.input[0].mp)
                 {
-                    if (lastSniff >= Pup_Track._VISIBLE_FOR)
+                    if (lastSniff >= SNIFF_COUNTER)
                     {
-                        tracksVisible = false;
-                    }
-                    else
-                    {
+                        setNotifySound = true;
+                        SniffAnimation(self);
+                        lastSniff = 0f;
                         for (int i = 0; i < self.room.physicalObjects.Length; i++)
                         {
                             for (int j = 0; j < self.room.physicalObjects[i].Count; j++)
@@ -467,44 +462,19 @@ namespace SlugTemplate
                                 if (self.room.physicalObjects[i][j] is Pup_Track)
                                 {
                                     (self.room.physicalObjects[i][j] as Pup_Track).SetVisibleTrue();
-                                    UnityEngine.Debug.Log("[evilslug] tracks are now visible");
-                                    Logger.LogInfo("Pup tracks set to visible");
                                 }
                             }
-
                         }
                     }
                 }
                 else
                 {
-                    lastSniff += Time.deltaTime;
-                    for (int i = 0; i < self.room.physicalObjects.Length; i++)
-                    {
-                        for (int j = 0; j < self.room.physicalObjects[i].Count; j++)
-                        {
-                            if (self.room.physicalObjects[i][j] is Pup_Track)
-                            {
-                                (self.room.physicalObjects[i][j] as Pup_Track).SetVisibleFalse();
-                                //UnityEngine.Debug.Log("[evilslug] tracks are no longer visible");
-                                Logger.LogInfo("Pup tracks set to invisible");
-                            }
-                        }
-
-                    }
+                    Debug.Log("[McEvil] Can't sniff yet!");
                 }
-
-                if (((ModManager.Watcher && self.input[0].spec)
-                || Input.GetKeyDown(KeyCode.T)) && lastSniff >= SNIFF_COUNTER)
+                if (SNIFF_COUNTER >= lastSniff && setNotifySound)
                 {
-                    SniffAnimation(self);
-                    lastSniff = 0f;
-                    tracksVisible = true;
-                }
-                else if (ModManager.Watcher && self.input[0].spec || Input.GetKeyDown(KeyCode.T))
-                {
-                    UnityEngine.Debug.Log("[evilslug] can't sniff yet!");
-                    // UnityEngine.Debug.Log("[evilslug] can't sniff! Can sniff in "
-                    // + (SNIFF_COUNTER - lastSniff) + " seconds");
+                    self.room.PlaySound(SoundID.Token_Collect);
+                    setNotifySound = false;
                 }
             }
         }
