@@ -2,7 +2,6 @@
 using mcevilslug;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
-using MonoMod.RuntimeDetour;
 using On.MoreSlugcats;
 using System;
 using System.Collections.Generic;
@@ -12,6 +11,8 @@ using UnityEngine;
 namespace SlugTemplate
 {
     [BepInPlugin(MOD_ID, "Evil McEvilslug", "0.1.0")]
+    
+    //"requirements": ["mod_id_1", "mod_id_2", "etc"],
 
     class Plugin : BaseUnityPlugin
     {
@@ -25,10 +26,7 @@ namespace SlugTemplate
         private int framesPickupHeld = 0;
         private int framesSlugToBackInput = 0;
 
-        private int minPupsPerCycle = 4; //always 1 lower than the actual minimum due to Unity's Random.Range int overload
-        private int maxPupsForceSpawned = 7;
-
-        private const int PUP_CHUNK_GRABBED = 0;
+        private const int PUP_CHUNK_GRAB = 0;
 
         private List<AbstractRoom> realizedShelters = new List<AbstractRoom>();
 
@@ -44,11 +42,8 @@ namespace SlugTemplate
 
             On.AbstractPhysicalObject.Realize += AbstractPhysicalObject_Realize;
 
-            LoadManualHooks();
-
             //world hooks
-            //On.World.SpawnPupNPCs += SpawnPupOnWorldLoad;
-            On.AbstractRoom.RealizeRoom += SpawnPupOnShelterRealize;
+            //On.AbstractRoom.RealizeRoom += SpawnPupOnShelterRealize;
             //On.World.LoadWorld += ClearList;
 
             //player hooks
@@ -57,7 +52,6 @@ namespace SlugTemplate
             On.Player.ThrownSpear += EvilSpearThrow;
             //On.Player.Update += EvilClimb;
             On.Player.Update += EvilPlayerUpdates;
-            On.Player.ProcessDebugInputs += EvilDebug;
 
             //slugnpc hooks
             SlugNPCAI.Update += PupUpdate;
@@ -105,101 +99,50 @@ namespace SlugTemplate
             }
         }
 
-        private void LoadManualHooks()
-        {
-            try
-            {
-                _ = new Hook(
-                    typeof(StoryGameSession).GetProperty(nameof(StoryGameSession.slugPupMaxCount), bfAll).GetGetMethod(),
-                    typeof(SlugPupMaxCount_Hook).GetMethod(nameof(SlugPupMaxCount_Hook.MaxPups_Hook), bfAll));
-
-            }
-            catch (Exception e)
-            {
-                Logger.LogError(e);
-            }
-        }
-
-        private int SpawnPupOnWorldLoad(On.World.orig_SpawnPupNPCs orig, World self)
-        {
-            if (ModManager.MSC && self.game.IsStorySession && self.game.StoryCharacter.value == MOD_ID)
-            {
-                //UnityEngine.Debug.Log("[evilslug] Region pup chance is " + self.region.regionParams.slugPupSpawnChance);
-                //UnityEngine.Debug.Log("Evilslug: slugPupMaxCount is " + self.game.GetStorySession.slugPupMaxCount);
-
-                Logger.LogInfo("SpawnPupOnWorldLoad() initiated");
-                //Logger.LogInfo("Pup spawn chance is " + self.region.regionParams.slugPupSpawnChance);
-                //Logger.LogInfo("slugPupMaxCount is " + self.game.GetStorySession.slugPupMaxCount);
-
-                AbstractRoom spawnRoom = null;
-                int pupsThisCycle = UnityEngine.Random.Range(minPupsPerCycle, maxPupsForceSpawned);
-                UnityEngine.Debug.Log("Evilslug: Force spawning " + pupsThisCycle + " pups this cycle");
-                Logger.LogInfo("Force spawning " + pupsThisCycle + " pups this cycle");
-
-                for (int p = 0; p < pupsThisCycle; p++)
-                {
-                    int randRoomIndex = UnityEngine.Random.Range(0, self.abstractRooms.Length + 1);
-                    spawnRoom = self.abstractRooms[randRoomIndex];
-
-                    if (spawnRoom.offScreenDen)
-                    {
-                        Logger.LogInfo("Attempted pup spawn in offscreen den failed. Reattempting in new room...");
-                        pupsThisCycle++;
-                    }
-                    else
-                    {
-                        SpawnPup(self.game, self, spawnRoom);
-                    }
-                }
-            }
-
-            return orig(self);
-        }
-
-        private void SpawnPupOnShelterRealize(On.AbstractRoom.orig_RealizeRoom orig, AbstractRoom self, World world, RainWorldGame game)
-        {
-            if (game.IsStorySession && game.StoryCharacter.value == MOD_ID)
-            {
-                if (ModManager.MSC
-                    && self.realizedRoom == null
-                    && !self.offScreenDen
-                    && self.shelter
-                    && !world.singleRoomWorld
-                    && self.name != game.GetStorySession.saveState.denPosition)
-                {
-                    Logger.LogInfo("Attempting to spawn SlugNPC in realized shelter...");
-                    // bool hasBeenRealized = false;
-
-                    // if (realizedShelters.Any())
-                    // {
-                    //     foreach (AbstractRoom shelter in realizedShelters)
-                    //     {
-                    //         if (shelter.name == self.name)
-                    //         {
-                    //             hasBeenRealized = true;
-                    //             Logger.LogInfo("Failed! This shelter has already been realized once");
-                    //         }
-                    //     }
-                    // }
-
-                    // if (!hasBeenRealized)
-                    // {
-                    float spawn = UnityEngine.Random.Range(0f, 10f);
-                    if (spawn <= 1.7f)
-                    {
-                        SpawnPup(game, world, self);
-                    }
-                    else
-                    {
-                        Logger.LogInfo("Spawn failed due to random chance");
-                    }
-                    realizedShelters.Add(self);
-                    //}
-                }
-            }
-
-            orig(self, world, game);
-        }
+        // private void SpawnPupOnShelterRealize(On.AbstractRoom.orig_RealizeRoom orig, AbstractRoom self, World world, RainWorldGame game)
+        // {
+        //     if (game.IsStorySession && game.StoryCharacter.value == MOD_ID)
+        //     {
+        //         if (ModManager.MSC
+        //             && self.realizedRoom == null
+        //             && !self.offScreenDen
+        //             && self.shelter
+        //             && !world.singleRoomWorld
+        //             && self.name != game.GetStorySession.saveState.denPosition)
+        //         {
+        //             Logger.LogInfo("Attempting to spawn SlugNPC in realized shelter...");
+        //             // bool hasBeenRealized = false;
+        //
+        //             // if (realizedShelters.Any())
+        //             // {
+        //             //     foreach (AbstractRoom shelter in realizedShelters)
+        //             //     {
+        //             //         if (shelter.name == self.name)
+        //             //         {
+        //             //             hasBeenRealized = true;
+        //             //             Logger.LogInfo("Failed! This shelter has already been realized once");
+        //             //         }
+        //             //     }
+        //             // }
+        //
+        //             // if (!hasBeenRealized)
+        //             // {
+        //             float spawn = UnityEngine.Random.Range(0f, 10f);
+        //             if (spawn <= 1.7f)
+        //             {
+        //                 SpawnPup(game, world, self);
+        //             }
+        //             else
+        //             {
+        //                 Logger.LogInfo("Spawn failed due to random chance");
+        //             }
+        //             realizedShelters.Add(self);
+        //             //}
+        //         }
+        //     }
+        //
+        //     orig(self, world, game);
+        // }
 
         // private void ClearList(On.World.orig_LoadWorld orig, World self, SlugcatStats.Name slugcatNumber, List<AbstractRoom> abstractRoomsList, int[] swarmRooms, int[] shelters, int[] gates)
         // {
@@ -214,52 +157,6 @@ namespace SlugTemplate
         //         Logger.LogInfo("realizedShelters list was empty");
         //     }
         // }
-
-        private void SpawnPup(RainWorldGame game, World world, AbstractRoom room)
-        {
-            if (ModManager.MSC)
-            {
-                //copied from AbstractRoom.RealizeRoom()
-                AbstractCreature abstractCreature = new AbstractCreature(world,
-                    StaticWorld.GetCreatureTemplate(MoreSlugcats.MoreSlugcatsEnums.CreatureTemplateType.SlugNPC),
-                    null,
-                    new WorldCoordinate(room.index, -1, -1, 0),
-                    game.GetNewID());
-
-                try
-                {
-                    room.AddEntity(abstractCreature);
-                    (abstractCreature.state as MoreSlugcats.PlayerNPCState).foodInStomach = 1;
-
-                    Logger.LogInfo(abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
-                    UnityEngine.Debug.Log("[evilslug] " + abstractCreature.GetType().ToString() + " " + abstractCreature.ID + " spawned in " + abstractCreature.Room.name);
-
-                    //SetCritRandDestination(abstractCreature, world);
-
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError(e);
-                }
-            }
-        }
-
-        private void SetCritRandDestination(AbstractCreature crit, World world)
-        {
-            int goalIndex = UnityEngine.Random.Range(0, world.abstractRooms.Length - 1);
-            AbstractRoom goal = world.abstractRooms[goalIndex];
-            if (goal.offScreenDen)
-            {
-                SetCritRandDestination(crit, world);
-            }
-            else
-            {
-                WorldCoordinate pos = goal.RandomNodeInRoom();
-                crit.abstractAI.SetDestination(pos);
-                UnityEngine.Debug.Log("[evilslug] Set pup " + crit.ID + "'s destination to " + goal.name);
-                Logger.LogInfo("Set pup " + crit.ID + "'s destination to " + goal.name);
-            }
-        }
 
         private void AddFood(On.Player.orig_ObjectEaten orig, Player self, IPlayerEdible edible)
         {
@@ -309,7 +206,7 @@ namespace SlugTemplate
                 {
                     //UpdatePupAIState(self.grasps[0].grabbed as Player);
                     (self.grasps[0].grabbed as Player).standing = false;
-                    self.Grab(self.grasps[0].grabbed, 0, PUP_CHUNK_GRABBED, Creature.Grasp.Shareability.CanNotShare, 0.5f, true, true);
+                    self.Grab(self.grasps[0].grabbed, 0, PUP_CHUNK_GRAB, Creature.Grasp.Shareability.CanNotShare, 0.5f, true, true);
                     self.MaulingUpdate(0);
                 }
 
@@ -489,20 +386,6 @@ namespace SlugTemplate
         // {
         //     npc.AI.behaviorType = Register.BeingGrabbed;
         // }
-
-        private void EvilDebug(On.Player.orig_ProcessDebugInputs orig, Player self)
-        {
-            orig(self);
-
-            if (Input.GetKeyDown("1"))
-            {
-                AbstractPhysicalObject abstractTrack = new(self.room.world, Register.PupTrack, null,
-                    self.room.GetWorldCoordinate(self.bodyChunks[0].pos), self.room.game.GetNewID());
-                    Pup_Track debugTrack = new Pup_Track(abstractTrack);
-                    debugTrack.SetPupColor(Color.white);
-                    debugTrack.PlaceInRoom(self.room);
-            }
-        }
 
         private void PupUpdate(SlugNPCAI.orig_Update orig, MoreSlugcats.SlugNPCAI self)
         {
