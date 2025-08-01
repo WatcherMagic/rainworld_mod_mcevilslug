@@ -4,8 +4,8 @@
 	"version": "0.1.0",
 	"authors": "WatcherMagic",
 	"description": "",
-	"requirements": [ "slime-cubed.slugbase", "rwremix", "moreslugcats" ],
-	"requirements_names": [ "SlugBase", "RainWorld Remix", "Downpour" ],
+	"requirements": [ "slime-cubed.slugbase", "rwremix", "moreslugcats", "dynamicpupspawns" ],
+	"requirements_names": [ "SlugBase", "RainWorld Remix", "Downpour", "Dynamic Pup Spawns" ],
 	"priorities": [ "watcher" ],
 	"tags": [ "Custom Slugcat", "Campaigns", "Game Mechanics" ]
 }

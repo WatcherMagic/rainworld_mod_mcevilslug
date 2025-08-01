@@ -12,10 +12,10 @@ namespace SlugTemplate
 {
     [BepInPlugin(MOD_ID, "Evil McEvilslug", "0.1.0")]
     
-    //"requirements": ["mod_id_1", "mod_id_2", "etc"],
+    [BepInDependency("dynamicpupspawns", BepInDependency.DependencyFlags.HardDependency)]
 
     class Plugin : BaseUnityPlugin
-    {
+    {   
         public const string MOD_ID = "mcevilslug";
 
         private const int QUARTER_FOOD_AMOUNT_MUSHROOM = 2;
